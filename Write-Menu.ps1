@@ -4,7 +4,9 @@ function Write-Menu {
             Write-Menu (v1.0)
             by QuietusPlus
 
-            Based (but heavily modified) on "Simple Textbased Powershell Menu" by Michael Albert [info@michlstechblog.info]
+            LICENSE: This work is licensed under the Creative Commons Attribution-ShareAlike 4.0 International License. To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/4.0/ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+
+            Based on "Simple Textbased Powershell Menu" by Michael Albert [info@michlstechblog.info]
 
         .SYNOPSIS
             Outputs a command-line menu, which can be navigated using the keyboard.
@@ -125,7 +127,7 @@ function Write-Menu {
             # If selected, invert colours
             if ($positionCurrent -eq $positionSelected) { [System.Console]::BackgroundColor = $colorBackgroundSelected; [System.Console]::ForegroundColor = $colorForegroundSelected }
             # Write entry
-            [System.Console]::Write(' ' + $pageEntries[$positionCurrent] + ' ')
+            [System.Console]::Write('  ' + $pageEntries[$positionCurrent] + '  ')
             # Reset colours
             [System.Console]::BackgroundColor = $colorBackground; [System.Console]::ForegroundColor = $colorForeground
             # Empty line
