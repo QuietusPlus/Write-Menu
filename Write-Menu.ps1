@@ -40,6 +40,8 @@ function Write-Menu {
 
              Page 1 / 1
 
+        .LINK
+            https://gist.github.com/QuietusPlus/59d8612ec13ea929704542eb0bd8d52c
     #>
 
     [CmdletBinding()]
