@@ -176,32 +176,25 @@ function Write-Menu {
         # Read key input
         $menuInput = [System.Console]::ReadKey($true)
 
-        # Arrow down
-        if (($menuInput.Key -eq 'DownArrow') -and ($positionSelected -lt ($pageEntriesCount - 1))) { $positionSelected++
-        # Arrow up
-        } elseif (($menuInput.Key -eq 'UpArrow') -and ($positionSelected -gt 0)) { $positionSelected--
-        # Enter
-        } elseif ($menuInput.Key -eq 'Enter') { $menuLoop = $false
-        # Escape
-        } elseif ($menuInput.Key -eq 'Escape') { $menuLoop = $false
-        # Arrow left
-        } elseif ($menuInput.Key -eq 'LeftArrow') { if ($Page -ne 0) { $Page--; $menuLoop = $false }
-        # Arrow right
-        } elseif ($menuInput.Key -eq 'RightArrow') { if ($Page -ne $pageTotal) { $Page++; $menuLoop = $false } }
-
-    } while ($menuLoop)
-
-    # Finish operations for pressed key
-    if ($menuInput.Key -eq 'Escape') {
-        Clear-Host; return $false
-    } elseif ($menuInput.Key -eq 'Enter') {
-        Clear-Host; return ($pageEntries[$positionSelected])
-    } elseif (($menuInput.Key -eq 'LeftArrow') -or ($menuInput.Key -eq 'RightArrow')) {
-        Clear-Host
-        if ($Title -notlike $null) { # Check if title has previously been passed
-            Write-Menu -Entries $Entries -Page $Page -Title $Title
-        } else { # If not, skip title
-            Write-Menu -Entries $Entries -Page $Page
+        switch ($menuInput.Key) {
+            'DownArrow' {
+                # Check: End of list
+                if ($positionSelected -lt ($pageEntriesCount - 1)) { $positionSelected++ } }
+            'UpArrow' {
+                # Check: Top of list
+                if ($positionSelected -gt 0) { $positionSelected-- } }
+            'Enter' {
+                # Return: Selected entry
+                $menuLoop = $false; Clear-Host; return ($pageEntries[$positionSelected]) }
+            'Escape' {
+                # Return: $false
+                $menuLoop = $false; Clear-Host; return $false }
+            'LeftArrow' {
+                # Check: First page
+                if ($Page -ne 0) { $menuLoop = $false; $Page--; Write-Menu -Entries $Entries -Page $Page -Title $Title } }
+            'RightArrow' {
+                # Check: Last page
+                if ($Page -ne $pageTotal) { $menuLoop = $false; $Page++; Write-Menu -Entries $Entries -Page $Page -Title $Title } }
         }
-    }
+    } while ($menuLoop)
 }
