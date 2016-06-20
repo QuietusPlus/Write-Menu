@@ -193,7 +193,7 @@ function Write-Menu {
 
     # Finish operations for pressed key
     if ($menuInput.Key -eq 'Escape') {
-        Clear-Host; return
+        Clear-Host; return $false
     } elseif ($menuInput.Key -eq 'Enter') {
         Clear-Host; return ($pageEntries[$positionSelected])
     } elseif (($menuInput.Key -eq 'LeftArrow') -or ($menuInput.Key -eq 'RightArrow')) {
