@@ -50,7 +50,7 @@ function Write-Menu {
             Sort entries before they are added to the menu.
 
         .EXAMPLE
-            PS > $choice = Write-Menu -Title 'Test Menu' -Entries @('Test Object 1', 'Test Object 2', 'Test Object 3', 'Test Object 4')
+            PS > $menuReturn = Write-Menu -Title 'Menu Title' -Entries @('Menu Option 1', 'Menu Option 2', 'Menu Option 3', 'Menu Option 4')
 
              Menu Title
 
@@ -60,6 +60,11 @@ function Write-Menu {
               Menu Option 4
 
              Page 1 / 1
+
+        .EXAMPLE
+            PS > $menuReturn = Write-Menu -Title 'AppxPackages' -Entries (Get-AppxPackage).Name -Sort
+
+            This example uses Write-Menu to sort and list app packages (Windows Store/Modern Apps) that are installed for the current profile.
 
         .LINK
             https://github.com/QuietusPlus/Write-Menu
