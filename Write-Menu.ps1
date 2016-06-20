@@ -89,7 +89,7 @@ function Write-Menu {
     #>
 
     # Parameter: Entries
-    if ($Entries -like $null) { return }
+    if ($Entries -like $null) { Write-Error "Missing -Entries parameter!"; return }
     # Parameter: Page
     if ($Page -like $null) { $Page = 0 }
     # Parameter: Title
