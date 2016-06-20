@@ -84,9 +84,15 @@ function Write-Menu {
     # Clear screen
     Clear-Host
 
-    # Check if parameters have been passed
+    <#
+        Checks
+    #>
+
+    # Parameter: Entries
     if ($Entries -like $null) { return }
+    # Parameter: Page
     if ($Page -like $null) { $Page = 0 }
+    # Parameter: Title
     if ($Title -notlike $null) {
         [System.Console]::WriteLine("`n " + $Title + "`n") # Display title
         $pageListSize = ($host.UI.RawUI.WindowSize.Height - 7) # Set menu height
