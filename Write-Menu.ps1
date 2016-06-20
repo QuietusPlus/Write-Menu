@@ -46,6 +46,9 @@ function Write-Menu {
         .PARAMETER Page
             Page to display.
 
+        .PARAMETER Sort
+            Sort entries before they are added to the menu.
+
         .EXAMPLE
             PS > $choice = Write-Menu -Title 'Test Menu' -Entries @('Test Object 1', 'Test Object 2', 'Test Object 3', 'Test Object 4')
 
@@ -78,7 +81,10 @@ function Write-Menu {
         $Title,
 
         [Parameter(ValueFromPipelineByPropertyName = $true)]
-        [System.Int16]$Page
+        [System.Int16]$Page,
+
+        [Parameter()]
+        [switch]$Sort
     )
 
     # Clear screen
@@ -100,6 +106,8 @@ function Write-Menu {
         [System.Console]::WriteLine('') # Skip title display
         $pageListSize = ($host.UI.RawUI.WindowSize.Height - 5) # Set menu height
     }
+    # Parameter: Sort
+    if ($Sort -eq $true) { $Entries = $Entries | Sort-Object }
 
     <#
         Colours
