@@ -1,6 +1,6 @@
 #Write-Menu
 
-![AppxPackages](Examples\AppxPackages.gif)
+![AppxPackages](Examples/AppxPackages.gif)
 
 ##Description
 
@@ -21,5 +21,5 @@ Escape | Exit menu
 
 Example | Description
 --- | ---
-[AppxPackages](Examples\AppxPackages.md) | Uses Write-Menu to list app packages (Windows Store/Modern Apps)
-[CustomMenu](Examples\CustomMenu.md) | Generates a custom menu by manually specifying each entry
+[AppxPackages](Examples/AppxPackages.md) | Uses Write-Menu to list app packages (Windows Store/Modern Apps)
+[CustomMenu](Examples/CustomMenu.md) | Generates a custom menu by manually specifying each entry
