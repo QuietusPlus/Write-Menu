@@ -108,6 +108,8 @@ function Write-Menu {
     }
     # Parameter: Sort
     if ($Sort -eq $true) { $Entries = $Entries | Sort-Object }
+    # Make sure host is console window
+    if ($host.Name -ne 'ConsoleHost') { Write-Error "[$($host.Name)] Cannot run inside host, please use a console window instead!"; return }
 
     <#
         Colours
