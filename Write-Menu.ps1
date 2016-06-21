@@ -211,7 +211,7 @@ function Write-Menu {
             'RightArrow' {
                 # Check: Last page
                 if ($Page -ne $pageTotal) { $menuLoop = $false; $Page++; Write-Menu -Entries $Entries -Page $Page -Title $Title } }
-            'Escape' {
+            {$_ -in 'Escape','Backspace'} {
                 # Return: $false
                 $menuLoop = $false; Clear-Host; return $false }
             'Enter' {
