@@ -128,8 +128,19 @@ function Write-Menu {
         Initialisation
     #>
 
-    # Amount of entries in total
-    $entriesTotal = $Entries.Length
+    # Get entries type
+    $entriesType = $Entries.GetType().Name
+    # Amount of entries in total + Preparation for page conversion
+    switch ($entriesType) {
+        'Object[]' {
+            $entriesTotal = $Entries.Length
+            $entriesToPage = $Entries
+        }
+        'Hashtable' {
+            $entriesTotal = $Entries.Count
+            $entriesToPage = $Entries.Keys
+        }
+    }
     # First entry of page (location within entire array)
     $pageFirstEntry = ($pageListSize * $Page)
     # Total pages
@@ -148,7 +159,7 @@ function Write-Menu {
     # Get entries for current page
     $pageEntries = @()
     foreach ($i in 0..$pageListSize) {
-        $pageEntries += $Entries[($pageFirstEntry + $i)]
+        $pageEntries += $entriesToPage[($pageFirstEntry + $i)]
     }
 
     <#
@@ -188,18 +199,28 @@ function Write-Menu {
             'UpArrow' {
                 # Check: Top of list
                 if ($positionSelected -gt 0) { $positionSelected-- } }
-            'Enter' {
-                # Return: Selected entry
-                $menuLoop = $false; Clear-Host; return ($pageEntries[$positionSelected]) }
-            'Escape' {
-                # Return: $false
-                $menuLoop = $false; Clear-Host; return $false }
             'LeftArrow' {
                 # Check: First page
                 if ($Page -ne 0) { $menuLoop = $false; $Page--; Write-Menu -Entries $Entries -Page $Page -Title $Title } }
             'RightArrow' {
                 # Check: Last page
                 if ($Page -ne $pageTotal) { $menuLoop = $false; $Page++; Write-Menu -Entries $Entries -Page $Page -Title $Title } }
+            'Escape' {
+                # Return: $false
+                $menuLoop = $false; Clear-Host; return $false }
+            'Enter' {
+                # Return: Selected entry
+                $menuLoop = $false; Clear-Host
+                switch ($entriesType) {
+                    'Object[]' {
+                        return ($pageEntries[$positionSelected])
+                    }
+                    'Hashtable' {
+                        $entriesIndex = [array]::IndexOf($Entries.Keys,[string]$($pageEntries[$positionSelected]))
+                        Invoke-Expression -Command $($Entries.Values)[$entriesIndex]
+                    }
+                }
+            }
         }
     } while ($menuLoop)
 }
