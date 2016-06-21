@@ -205,10 +205,10 @@ function Write-Menu {
             'End' {
                 # Move to bottom entry
                 $positionSelected = ($pageEntriesCount - 1) }
-            'LeftArrow' {
+            {$_ -in 'LeftArrow','PageUp'} {
                 # Check: First page
                 if ($Page -ne 0) { $menuLoop = $false; $Page--; Write-Menu -Entries $Entries -Page $Page -Title $Title } }
-            'RightArrow' {
+            {$_ -in 'RightArrow','PageDown'} {
                 # Check: Last page
                 if ($Page -ne $pageTotal) { $menuLoop = $false; $Page++; Write-Menu -Entries $Entries -Page $Page -Title $Title } }
             {$_ -in 'Escape','Backspace'} {
