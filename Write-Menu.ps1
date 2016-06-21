@@ -199,6 +199,12 @@ function Write-Menu {
             'UpArrow' {
                 # Check: Top of list
                 if ($positionSelected -gt 0) { $positionSelected-- } }
+            'Home' {
+                # Move to top entry
+                $positionSelected = 0 }
+            'End' {
+                # Move to bottom entry
+                $positionSelected = ($pageEntriesCount - 1) }
             'LeftArrow' {
                 # Check: First page
                 if ($Page -ne 0) { $menuLoop = $false; $Page--; Write-Menu -Entries $Entries -Page $Page -Title $Title } }
