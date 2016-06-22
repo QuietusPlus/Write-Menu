@@ -111,8 +111,6 @@ function Write-Menu {
         [System.Console]::WriteLine('') # Skip title display
         $pageListSize = ($host.UI.RawUI.WindowSize.Height - 5) # Set menu height
     }
-    # Parameter: Sort
-    if ($Sort -eq $true) { $Entries = $Entries | Sort-Object }
     # Make sure host is console window
     if ($host.Name -ne 'ConsoleHost') { Write-Error "[$($host.Name)] Cannot run inside host, please use a console window instead!"; return }
 
@@ -138,9 +136,12 @@ function Write-Menu {
         }
         'Hashtable' {
             $entriesTotal = $Entries.Count
-            $entriesToPage = $Entries.Keys
+            $entriesToPage = @()
+            $Entries.Keys | ForEach-Object { $entriesToPage += $_ }
         }
     }
+    # Sort if parameter has been specified
+    if ($Sort -eq $true) { $entriesToPage = $entriesToPage | Sort-Object }
     # First entry of page (location within entire array)
     $pageFirstEntry = ($pageListSize * $Page)
     # Total pages
