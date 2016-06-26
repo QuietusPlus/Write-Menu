@@ -111,8 +111,6 @@ function Write-Menu {
         [System.Console]::WriteLine('') # Skip title display
         $pageListSize = ($host.UI.RawUI.WindowSize.Height - 5) # Set menu height
     }
-    # Parameter: Sort
-    if ($Sort -eq $true) { $Entries = $Entries | Sort-Object }
     # Make sure host is console window
     if ($host.Name -ne 'ConsoleHost') { Write-Error "[$($host.Name)] Cannot run inside host, please use a console window instead!"; return }
 
@@ -129,18 +127,32 @@ function Write-Menu {
     #>
 
     # Get entries type
-    $entriesType = $Entries.GetType().Name
+    $entriesType = ($Entries | ForEach-Object { $_.PSObject.TypeNames[0] } | Select-Object -First 1)
     # Amount of entries in total + Preparation for page conversion
+    $entriesToPage = @()
     switch ($entriesType) {
-        'Object[]' {
+        System.String {
             $entriesTotal = $Entries.Length
-            $entriesToPage = $Entries
+            foreach ($i in 0..$($entriesTotal - 1)) {
+                $entriesToPage += New-Object PSObject -Property @{
+                    Command = $null
+                    Name = $($Entries)[$i]
+                }; $i++
+            }
         }
-        'Hashtable' {
+        System.Collections.Hashtable {
             $entriesTotal = $Entries.Count
-            $entriesToPage = $Entries.Keys
+            foreach ($i in 0..$($entriesTotal - 1)) {
+                $entriesToPage += New-Object PSObject -Property @{
+                    Command = $($Entries.Values)[$i]
+                    Name = $($Entries.Keys)[$i]
+                }; $i++
+            }
         }
     }
+
+    # -Sort entries
+    if ($Sort -eq $true) { $entriesToPage = $entriesToPage | Sort-Object -Property Name}
     # First entry of page (location within entire array)
     $pageFirstEntry = ($pageListSize * $Page)
     # Total pages
@@ -159,7 +171,10 @@ function Write-Menu {
     # Get entries for current page
     $pageEntries = @()
     foreach ($i in 0..$pageListSize) {
-        $pageEntries += $entriesToPage[($pageFirstEntry + $i)]
+        $pageEntries += New-Object PSObject -Property @{
+            Command = $entriesToPage[($pageFirstEntry + $i)].Command
+            Name = $entriesToPage[($pageFirstEntry + $i)].Name
+        }
     }
 
     <#
@@ -175,7 +190,7 @@ function Write-Menu {
             # If selected, invert colours
             if ($positionCurrent -eq $positionSelected) { [System.Console]::BackgroundColor = $colorBackgroundSelected; [System.Console]::ForegroundColor = $colorForegroundSelected }
             # Write entry
-            [System.Console]::Write('  ' + $pageEntries[$positionCurrent] + '  ')
+            [System.Console]::Write('  ' + $pageEntries[$positionCurrent].Name + '  ')
             # Reset colours
             [System.Console]::BackgroundColor = $colorBackground; [System.Console]::ForegroundColor = $colorForeground
             # Empty line
@@ -215,17 +230,11 @@ function Write-Menu {
                 # Return: $false
                 $menuLoop = $false; Clear-Host; return $false }
             'Enter' {
-                # Return: Selected entry
                 $menuLoop = $false; Clear-Host
-                switch ($entriesType) {
-                    'Object[]' {
-                        return ($pageEntries[$positionSelected])
-                    }
-                    'Hashtable' {
-                        $entriesIndex = [array]::IndexOf($Entries.Keys,[string]$($pageEntries[$positionSelected]))
-                        Invoke-Expression -Command $($Entries.Values)[$entriesIndex]
-                    }
-                }
+                # Selected entry: Invoke command
+                if ($pageEntries[$positionSelected].Command -notlike $null) { Invoke-Expression -Command $pageEntries[$positionSelected].Command
+                # Selected entry: Return entry name
+                } else { return $pageEntries[$positionSelected].Name }
             }
         }
     } while ($menuLoop)
