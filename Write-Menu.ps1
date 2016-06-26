@@ -100,27 +100,42 @@ function Write-Menu {
     #>
 
     # Parameter: Entries
-    if ($Entries -like $null) { Write-Error "Missing -Entries parameter!"; return }
+    if ($Entries -like $null) {
+        Write-Error "Missing -Entries parameter!"
+        return
+    }
+
     # Parameter: Page
-    if ($Page -like $null) { $Page = 0 }
+    if ($Page -like $null) {
+        $Page = 0
+    }
+
     # Parameter: Title
     if ($Title -notlike $null) {
         [System.Console]::WriteLine("`n " + $Title + "`n") # Display title
         $pageListSize = ($host.UI.RawUI.WindowSize.Height - 7) # Set menu height
     } else {
-        [System.Console]::WriteLine('') # Skip title display
+        [System.Console]::WriteLine('')  # Skip title display
         $pageListSize = ($host.UI.RawUI.WindowSize.Height - 5) # Set menu height
     }
+
     # Make sure host is console window
-    if ($host.Name -ne 'ConsoleHost') { Write-Error "[$($host.Name)] Cannot run inside host, please use a console window instead!"; return }
+    if ($host.Name -ne 'ConsoleHost') {
+        Write-Error "[$($host.Name)] Cannot run inside host, please use a console window instead!"
+        return
+    }
 
     <#
         Colours
     #>
 
-    $colorForegroundSaved = [System.Console]::ForegroundColor; $colorBackgroundSaved = [System.Console]::BackgroundColor # Save original colours
-    $colorForeground = $colorForegroundSaved; $colorBackground = $colorBackgroundSaved # Set colours, modify this to change colours
-    $colorForegroundSelected = $colorBackground; $colorBackgroundSelected = $colorForeground # Set inverted colours
+    # Set colours, modify this to change colours
+    $colorForeground = [System.Console]::ForegroundColor
+    $colorBackground = [System.Console]::BackgroundColor
+
+    # Set inverted colours
+    $colorForegroundSelected = $colorBackground
+    $colorBackgroundSelected = $colorForeground
 
     <#
         Initialisation
@@ -128,6 +143,7 @@ function Write-Menu {
 
     # Get entries type
     $entriesType = ($Entries | ForEach-Object { $_.PSObject.TypeNames[0] } | Select-Object -First 1)
+
     # Amount of entries in total + Preparation for page conversion
     $entriesToPage = @()
     switch ($entriesType) {
@@ -153,14 +169,19 @@ function Write-Menu {
 
     # -Sort entries
     if ($Sort -eq $true) { $entriesToPage = $entriesToPage | Sort-Object -Property Name}
+
     # First entry of page (location within entire array)
     $pageFirstEntry = ($pageListSize * $Page)
+
     # Total pages
     $pageTotal = [math]::Ceiling((($entriesTotal - $pageListSize) / $pageListSize))
-    # Amount of entries on last page
-    if ($Page -eq $pageTotal) { $pageEntriesCount = ($entriesTotal - ($pageListSize * $pageTotal))
-    # Amount of entries on fully populated page
-    } else { $pageEntriesCount = $pageListSize }
+
+    # Amount of page entries
+    if ($Page -eq $pageTotal) { # Last page
+        $pageEntriesCount = ($entriesTotal - ($pageListSize * $pageTotal))
+    } else { # Fully populated page
+        $pageEntriesCount = $pageListSize
+    }
 
     # Position within console
     $positionCurrent = 0
@@ -184,15 +205,25 @@ function Write-Menu {
     do {
         $menuLoop = $true
         [System.Console]::CursorTop = ($positionTop - $positionTotal)
+
+        # Write entries
         for ($positionCurrent = 0; $positionCurrent -le ($pageEntriesCount - 1); $positionCurrent++) {
-            # Replace previous line
+            # Move to beginning of line
             [System.Console]::Write("`r")
+
             # If selected, invert colours
-            if ($positionCurrent -eq $positionSelected) { [System.Console]::BackgroundColor = $colorBackgroundSelected; [System.Console]::ForegroundColor = $colorForegroundSelected }
+            if ($positionCurrent -eq $positionSelected) {
+                [System.Console]::BackgroundColor = $colorBackgroundSelected
+                [System.Console]::ForegroundColor = $colorForegroundSelected
+            }
+
             # Write entry
             [System.Console]::Write('  ' + $pageEntries[$positionCurrent].Name + '  ')
+
             # Reset colours
-            [System.Console]::BackgroundColor = $colorBackground; [System.Console]::ForegroundColor = $colorForeground
+            [System.Console]::ForegroundColor = $colorForeground
+            [System.Console]::BackgroundColor = $colorBackground
+
             # Empty line
             [System.Console]::WriteLine('')
         }
@@ -208,33 +239,64 @@ function Write-Menu {
         $menuInput = [System.Console]::ReadKey($true)
 
         switch ($menuInput.Key) {
+            # Next entry
             'DownArrow' {
-                # Check: End of list
-                if ($positionSelected -lt ($pageEntriesCount - 1)) { $positionSelected++ } }
+                if ($positionSelected -lt ($pageEntriesCount - 1)) { # Check if bottom of list
+                    $positionSelected++
+                }
+            }
+
+            # Previous entry
             'UpArrow' {
-                # Check: Top of list
-                if ($positionSelected -gt 0) { $positionSelected-- } }
+                if ($positionSelected -gt 0) { # Check if top of list
+                    $positionSelected--
+                }
+            }
+
+            # Move to top entry
             'Home' {
-                # Move to top entry
-                $positionSelected = 0 }
+                $positionSelected = 0
+            }
+
+            # Move to bottom entry
             'End' {
-                # Move to bottom entry
-                $positionSelected = ($pageEntriesCount - 1) }
+                $positionSelected = ($pageEntriesCount - 1)
+            }
+
+            # Previous page
             {$_ -in 'LeftArrow','PageUp'} {
-                # Check: First page
-                if ($Page -ne 0) { $menuLoop = $false; $Page--; Write-Menu -Entries $Entries -Page $Page -Title $Title } }
-            {$_ -in 'RightArrow','PageDown'} {
-                # Check: Last page
-                if ($Page -ne $pageTotal) { $menuLoop = $false; $Page++; Write-Menu -Entries $Entries -Page $Page -Title $Title } }
+                if ($Page -ne 0) { # Check if on first page
+                    $menuLoop = $false
+                    $Page--
+                    Write-Menu -Entries $Entries -Page $Page -Title $Title
+                }
+            }
+
+            # Next page
+            {$_ -in 'RightArrow','PageDown'} { # Check if on last page
+                if ($Page -ne $pageTotal) {
+                    $menuLoop = $false
+                    $Page++
+                    Write-Menu -Entries $Entries -Page $Page -Title $Title
+                }
+            }
+
+            # Exit menu
             {$_ -in 'Escape','Backspace'} {
-                # Return: $false
-                $menuLoop = $false; Clear-Host; return $false }
+                $menuLoop = $false
+                Clear-Host
+                return $false
+            }
+
+            # Confirm selection
             'Enter' {
-                $menuLoop = $false; Clear-Host
-                # Selected entry: Invoke command
-                if ($pageEntries[$positionSelected].Command -notlike $null) { Invoke-Expression -Command $pageEntries[$positionSelected].Command
-                # Selected entry: Return entry name
-                } else { return $pageEntries[$positionSelected].Name }
+                $menuLoop = $false
+                Clear-Host
+                if ($pageEntries[$positionSelected].Command -notlike $null) { # Selected entry: Invoke command
+                    Invoke-Expression -Command $pageEntries[$positionSelected].Command
+                } else { # Selected entry: Return entry name
+                    return $pageEntries[$positionSelected].Name
+                }
             }
         }
     } while ($menuLoop)
