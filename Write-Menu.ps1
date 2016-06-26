@@ -49,6 +49,9 @@ function Write-Menu {
         .PARAMETER Sort
             Sort entries before they are added to the menu.
 
+        .PARAMETER MultiSelect
+            Select multiple entries using spacebar. Confirm returns or executes all checked entries.
+
         .EXAMPLE
             PS > $menuReturn = Write-Menu -Title 'Menu Title' -Entries @('Menu Option 1', 'Menu Option 2', 'Menu Option 3', 'Menu Option 4')
 
@@ -89,7 +92,10 @@ function Write-Menu {
         [System.Int16]$Page,
 
         [Parameter()]
-        [switch]$Sort
+        [switch]$Sort,
+
+        [Parameter()]
+        [switch]$MultiSelect
     )
 
     # Clear screen
@@ -153,6 +159,7 @@ function Write-Menu {
                 $entriesToPage += New-Object PSObject -Property @{
                     Command = $null
                     Name = $($Entries)[$i]
+                    Selected = $false
                 }; $i++
             }
         }
@@ -162,6 +169,7 @@ function Write-Menu {
                 $entriesToPage += New-Object PSObject -Property @{
                     Command = $($Entries.Values)[$i]
                     Name = $($Entries.Keys)[$i]
+                    Selected = $false
                 }; $i++
             }
         }
@@ -193,6 +201,8 @@ function Write-Menu {
     $pageEntries = @()
     foreach ($i in 0..$pageListSize) {
         $pageEntries += New-Object PSObject -Property @{
+            Index = ($pageFirstEntry + $i)
+            Selected = $entriesToPage[($pageFirstEntry + $i)].Selected
             Command = $entriesToPage[($pageFirstEntry + $i)].Command
             Name = $entriesToPage[($pageFirstEntry + $i)].Name
         }
@@ -217,8 +227,17 @@ function Write-Menu {
                 [System.Console]::ForegroundColor = $colorForegroundSelected
             }
 
+            # Define checkbox
+            if ($MultiSelect) {
+                if ($pageEntries[$positionCurrent].Selected) {
+                    $pageEntrySelected = '[X] '
+                } else {
+                    $pageEntrySelected = '[ ] '
+                }
+            }
+
             # Write entry
-            [System.Console]::Write('  ' + $pageEntries[$positionCurrent].Name + '  ')
+            [System.Console]::Write('  ' + $pageEntrySelected + $pageEntries[$positionCurrent].Name + '  ')
 
             # Reset colours
             [System.Console]::ForegroundColor = $colorForeground
@@ -288,12 +307,35 @@ function Write-Menu {
                 return $false
             }
 
+            # Check selection
+            'Spacebar' {
+                switch ($pageEntries[$positionSelected].Selected) {
+                    $true {
+                        $pageEntries[$positionSelected].Selected = $false
+                    }
+                	$false {
+                        $pageEntries[$positionSelected].Selected = $true
+                    }
+                }
+            }
+
             # Confirm selection
             'Enter' {
                 $menuLoop = $false
                 Clear-Host
                 if ($pageEntries[$positionSelected].Command -notlike $null) { # Selected entry: Invoke command
-                    Invoke-Expression -Command $pageEntries[$positionSelected].Command
+                    switch ($MultiSelect) {
+                        $true {
+                            $pageEntries | ForEach-Object {
+                                if ($_.Selected) {
+                                    Invoke-Expression -Command $_.Command
+                                }
+                            }
+                        }
+                        $false {
+                            Invoke-Expression -Command $pageEntries[$positionSelected].Command
+                        }
+                    }
                 } else { # Selected entry: Return entry name
                     return $pageEntries[$positionSelected].Name
                 }
