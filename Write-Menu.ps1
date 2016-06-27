@@ -43,9 +43,6 @@ function Write-Menu {
         .PARAMETER Title
             Title shown at the top.
 
-        .PARAMETER Page
-            Page to display.
-
         .PARAMETER Sort
             Sort entries before they are added to the menu.
 
@@ -88,9 +85,6 @@ function Write-Menu {
         [Alias('Name')]
         $Title,
 
-        [Parameter(ValueFromPipelineByPropertyName = $true)]
-        [System.Int16]$Page,
-
         [Parameter()]
         [switch]$Sort,
 
@@ -118,10 +112,10 @@ function Write-Menu {
 
     # Parameter: Title
     if ($Title -notlike $null) {
-        [System.Console]::WriteLine("`n " + $Title + "`n") # Display title
+        $menuTitle = "`n $Title`n" # Display title
         $pageListSize = ($host.UI.RawUI.WindowSize.Height - 7) # Set menu height
     } else {
-        [System.Console]::WriteLine('')  # Skip title display
+        $menuTitle = ''  # Skip title display
         $pageListSize = ($host.UI.RawUI.WindowSize.Height - 5) # Set menu height
     }
 
@@ -178,35 +172,31 @@ function Write-Menu {
     # -Sort entries
     if ($Sort -eq $true) { $entriesToPage = $entriesToPage | Sort-Object -Property Name}
 
-    # First entry of page (location within entire array)
-    $pageFirstEntry = ($pageListSize * $Page)
-
     # Total pages
     $pageTotal = [math]::Ceiling((($entriesTotal - $pageListSize) / $pageListSize))
 
-    # Amount of page entries
-    if ($Page -eq $pageTotal) { # Last page
-        $pageEntriesCount = ($entriesTotal - ($pageListSize * $pageTotal))
-    } else { # Fully populated page
-        $pageEntriesCount = $pageListSize
-    }
-
-    # Position within console
-    $positionCurrent = 0
-    $positionSelected = 0
-    $positionTotal = 0
-    $positionTop = [System.Console]::CursorTop
-
     # Get entries for current page
-    $pageEntries = @()
-    foreach ($i in 0..$pageListSize) {
-        $pageEntries += New-Object PSObject -Property @{
-            Index = ($pageFirstEntry + $i)
-            Selected = $entriesToPage[($pageFirstEntry + $i)].Selected
-            Command = $entriesToPage[($pageFirstEntry + $i)].Command
-            Name = $entriesToPage[($pageFirstEntry + $i)].Name
+    function Get-PageEntries {
+        # Write title
+        [System.Console]::WriteLine($menuTitle)
+
+        # First entry of page (location within entire array)
+        $script:pageFirstEntry = ($pageListSize * $Page)
+
+        # Amount of page entries
+        if ($Page -eq $pageTotal) { # Last page
+            $script:pageEntriesCount = ($entriesTotal - ($pageListSize * $pageTotal))
+        } else { # Fully populated page
+            $script:pageEntriesCount = $pageListSize
         }
+
+        # Position within console
+        $script:positionCurrent = 0
+        $script:positionSelected = 0
+        $script:positionTotal = 0
+        $script:positionTop = [System.Console]::CursorTop
     }
+    Get-PageEntries
 
     <#
         Write Page
@@ -229,15 +219,18 @@ function Write-Menu {
 
             # Define checkbox
             if ($MultiSelect) {
-                if ($pageEntries[$positionCurrent].Selected) {
-                    $pageEntrySelected = '[X] '
-                } else {
-                    $pageEntrySelected = '[ ] '
+                switch ($entriesToPage[($pageFirstEntry + $positionCurrent)].Selected) {
+                    $true {
+                        $pageEntrySelected = '[X] '
+                    }
+                	Default {
+                        $pageEntrySelected = '[ ] '
+                    }
                 }
             }
 
             # Write entry
-            [System.Console]::Write('  ' + $pageEntrySelected + $pageEntries[$positionCurrent].Name + '  ')
+            [System.Console]::Write('  ' + $pageEntrySelected + $entriesToPage[($pageFirstEntry + $positionCurrent)].Name + '  ')
 
             # Reset colours
             [System.Console]::ForegroundColor = $colorForeground
@@ -257,87 +250,76 @@ function Write-Menu {
         # Read key input
         $menuInput = [System.Console]::ReadKey($true)
 
+        # Selected entry
+        $entrySelected = $entriesToPage[($pageFirstEntry + $positionSelected)]
+
+        # Key actions
         switch ($menuInput.Key) {
-            # Next entry
-            'DownArrow' {
+            'DownArrow' { # Next entry
                 if ($positionSelected -lt ($pageEntriesCount - 1)) { # Check if bottom of list
                     $positionSelected++
                 }
             }
-
-            # Previous entry
-            'UpArrow' {
+            'UpArrow' { # Previous entry
                 if ($positionSelected -gt 0) { # Check if top of list
                     $positionSelected--
                 }
             }
-
-            # Move to top entry
-            'Home' {
+            'Home' { # Move to top entry
                 $positionSelected = 0
             }
-
-            # Move to bottom entry
-            'End' {
+            'End' { # Move to bottom entry
                 $positionSelected = ($pageEntriesCount - 1)
             }
-
-            # Previous page
-            {$_ -in 'LeftArrow','PageUp'} {
+            {$_ -in 'LeftArrow','PageUp'} { # Previous page
                 if ($Page -ne 0) { # Check if on first page
-                    $menuLoop = $false
                     $Page--
-                    Write-Menu -Entries $Entries -Page $Page -Title $Title
+                    $positionSelected = 0
+                    Clear-Host
+                    Get-PageEntries
                 }
             }
-
-            # Next page
-            {$_ -in 'RightArrow','PageDown'} { # Check if on last page
-                if ($Page -ne $pageTotal) {
-                    $menuLoop = $false
+            {$_ -in 'RightArrow','PageDown'} { # Next page
+                if ($Page -ne $pageTotal) { # Check if on last page
                     $Page++
-                    Write-Menu -Entries $Entries -Page $Page -Title $Title
+                    $positionSelected = 0
+                    Clear-Host
+                    Get-PageEntries
                 }
             }
-
-            # Exit menu
-            {$_ -in 'Escape','Backspace'} {
+            {$_ -in 'Escape','Backspace'} { # Exit menu
                 $menuLoop = $false
                 Clear-Host
                 return $false
             }
-
-            # Check selection
-            'Spacebar' {
-                switch ($pageEntries[$positionSelected].Selected) {
-                    $true {
-                        $pageEntries[$positionSelected].Selected = $false
-                    }
-                	$false {
-                        $pageEntries[$positionSelected].Selected = $true
-                    }
+            'Spacebar' { # Check selection
+                switch ($entrySelected.Selected) {
+                    $true { $entrySelected.Selected = $false }
+                	$false { $entrySelected.Selected = $true }
                 }
             }
-
-            # Confirm selection
-            'Enter' {
+            'Enter' { # Confirm selection
                 $menuLoop = $false
                 Clear-Host
-                if ($pageEntries[$positionSelected].Command -notlike $null) { # Selected entry: Invoke command
-                    switch ($MultiSelect) {
-                        $true {
-                            $pageEntries | ForEach-Object {
-                                if ($_.Selected) {
+                switch ($MultiSelect) {
+                    $true {
+                        $entriesToPage | ForEach-Object {
+                            if ($_.Selected) {
+                                if ($_.Command -notlike $null) {
                                     Invoke-Expression -Command $_.Command
+                                } else {
+                                    return $_.Name
                                 }
                             }
                         }
-                        $false {
-                            Invoke-Expression -Command $pageEntries[$positionSelected].Command
+                    }
+                    $false {
+                        if ($entrySelected.Command -notlike $null) {
+                            Invoke-Expression -Command $entrySelected.Command
+                        } else {
+                            return $entrySelected.Name
                         }
                     }
-                } else { # Selected entry: Return entry name
-                    return $pageEntries[$positionSelected].Name
                 }
             }
         }
