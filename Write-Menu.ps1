@@ -112,6 +112,7 @@ function Write-Menu {
 
     # Parameter: Title
     if ($Title -notlike $null) {
+        $host.UI.RawUI.WindowTitle = $Title # Window title
         $menuTitle = "`n $Title`n" # Display title
         $pageListSize = ($host.UI.RawUI.WindowSize.Height - 7) # Set menu height
     } else {
