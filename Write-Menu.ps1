@@ -92,32 +92,102 @@ function Write-Menu {
         [switch]$MultiSelect
     )
 
-    # Clear screen
-    Clear-Host
+    function Write-MessageBox($message) {
+        [System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms')
+        [System.Windows.Forms.MessageBox]::Show($message)
+    }
 
     <#
-        Checks
+        Get menu data
     #>
+
+    function Get-Menu($script:inputEntries) {
+        # Set title if provided, adjust menu height accordingly
+        if ($Title -notlike $null) {
+            $host.UI.RawUI.WindowTitle = $Title
+            $script:menuTitle = "`n $Title`n"
+            $script:pageSize = ($host.UI.RawUI.WindowSize.Height - 7)
+        } else {
+            $script:menuTitle = ''
+            $script:pageSize = ($host.UI.RawUI.WindowSize.Height - 5)
+        }
+
+        # Get entries type
+        $inputType = ($inputEntries | ForEach-Object {
+            $_.PSObject.TypeNames[0]
+        } | Select-Object -First 1)
+
+        # Convert entries to object
+        $script:menuEntries = @()
+        switch ($inputType) {
+            System.String {
+                $script:menuEntryTotal = $inputEntries.Length
+                foreach ($i in 0..$($menuEntryTotal - 1)) {
+                    $script:menuEntries += New-Object PSObject -Property @{
+                        Command = $null
+                        Name = $($inputEntries)[$i]
+                        Selected = $false
+                    }; $i++
+                }
+            }
+            System.Collections.Hashtable {
+                $script:menuEntryTotal = $inputEntries.Count
+                foreach ($i in 0..$($menuEntryTotal - 1)) {
+                    $script:menuEntries += New-Object PSObject -Property @{
+                        Command = $($inputEntries.Values)[$i]
+                        Name = $($inputEntries.Keys)[$i]
+                        Selected = $false
+                    }; $i++
+                }
+            }
+        }
+
+        # Sort entries
+        if ($Sort -eq $true) {
+            $global:menuEntries = $menuEntries | Sort-Object -Property Name
+        }
+
+        # Set current page + get total pages + sort entries
+        $script:pageCurrent = 0
+        $script:pageTotal = [math]::Ceiling((($menuEntryTotal - $pageSize) / $pageSize))
+    }
+
+    <#
+        Get page data
+    #>
+
+    function Get-Page {
+        # Write title
+        [System.Console]::WriteLine($menuTitle)
+
+        # Get index of first entry
+        $script:pageEntryFirst = ($pageSize * $pageCurrent)
+
+        # Get amount of entries for last page + fully populated page
+        if ($pageCurrent -eq $pageTotal) {
+            $script:pageEntryTotal = ($menuEntryTotal - ($pageSize * $pageTotal))
+        } else {
+            $script:pageEntryTotal = $pageSize
+        }
+
+        # Set position within console
+        $script:lineCurrent = 0
+        $script:lineSelected = 0
+        $script:lineTotal = 0
+        $script:lineTop = [System.Console]::CursorTop
+    }
+
+    <#
+        Initialisation
+    #>
+
+    # Clear screen
+    Clear-Host
 
     # Parameter: Entries
     if ($Entries -like $null) {
         Write-Error "Missing -Entries parameter!"
         return
-    }
-
-    # Parameter: Page
-    if ($Page -like $null) {
-        $Page = 0
-    }
-
-    # Parameter: Title
-    if ($Title -notlike $null) {
-        $host.UI.RawUI.WindowTitle = $Title # Window title
-        $menuTitle = "`n $Title`n" # Display title
-        $pageListSize = ($host.UI.RawUI.WindowSize.Height - 7) # Set menu height
-    } else {
-        $menuTitle = ''  # Skip title display
-        $pageListSize = ($host.UI.RawUI.WindowSize.Height - 5) # Set menu height
     }
 
     # Make sure host is console window
@@ -126,11 +196,7 @@ function Write-Menu {
         return
     }
 
-    <#
-        Colours
-    #>
-
-    # Set colours, modify this to change colours
+    # Set colours, modify to change colours
     $colorForeground = [System.Console]::ForegroundColor
     $colorBackground = [System.Console]::BackgroundColor
 
@@ -138,100 +204,46 @@ function Write-Menu {
     $colorForegroundSelected = $colorBackground
     $colorBackgroundSelected = $colorForeground
 
-    <#
-        Initialisation
-    #>
+    # First run
+    Get-Menu $Entries
+    Get-Page
 
-    # Get entries type
-    $entriesType = ($Entries | ForEach-Object { $_.PSObject.TypeNames[0] } | Select-Object -First 1)
-
-    # Amount of entries in total + Preparation for page conversion
-    $entriesToPage = @()
-    switch ($entriesType) {
-        System.String {
-            $entriesTotal = $Entries.Length
-            foreach ($i in 0..$($entriesTotal - 1)) {
-                $entriesToPage += New-Object PSObject -Property @{
-                    Command = $null
-                    Name = $($Entries)[$i]
-                    Selected = $false
-                }; $i++
-            }
-        }
-        System.Collections.Hashtable {
-            $entriesTotal = $Entries.Count
-            foreach ($i in 0..$($entriesTotal - 1)) {
-                $entriesToPage += New-Object PSObject -Property @{
-                    Command = $($Entries.Values)[$i]
-                    Name = $($Entries.Keys)[$i]
-                    Selected = $false
-                }; $i++
-            }
-        }
-    }
-
-    # -Sort entries
-    if ($Sort -eq $true) { $entriesToPage = $entriesToPage | Sort-Object -Property Name}
-
-    # Total pages
-    $pageTotal = [math]::Ceiling((($entriesTotal - $pageListSize) / $pageListSize))
-
-    # Get entries for current page
-    function Get-PageEntries {
-        # Write title
-        [System.Console]::WriteLine($menuTitle)
-
-        # First entry of page (location within entire array)
-        $script:pageFirstEntry = ($pageListSize * $Page)
-
-        # Amount of page entries
-        if ($Page -eq $pageTotal) { # Last page
-            $script:pageEntriesCount = ($entriesTotal - ($pageListSize * $pageTotal))
-        } else { # Fully populated page
-            $script:pageEntriesCount = $pageListSize
-        }
-
-        # Position within console
-        $script:positionCurrent = 0
-        $script:positionSelected = 0
-        $script:positionTotal = 0
-        $script:positionTop = [System.Console]::CursorTop
-    }
-    Get-PageEntries
+    # Get menu root
+    $menuNested = [ordered]@{}
 
     <#
-        Write Page
+        Write page
     #>
 
     do {
         $menuLoop = $true
-        [System.Console]::CursorTop = ($positionTop - $positionTotal)
+        [System.Console]::CursorTop = ($lineTop - $lineTotal)
 
         # Write entries
-        for ($positionCurrent = 0; $positionCurrent -le ($pageEntriesCount - 1); $positionCurrent++) {
+        for ($lineCurrent = 0; $lineCurrent -le ($pageEntryTotal - 1); $lineCurrent++) {
             # Move to beginning of line
             [System.Console]::Write("`r")
 
             # If selected, invert colours
-            if ($positionCurrent -eq $positionSelected) {
+            if ($lineCurrent -eq $lineSelected) {
                 [System.Console]::BackgroundColor = $colorBackgroundSelected
                 [System.Console]::ForegroundColor = $colorForegroundSelected
             }
 
             # Define checkbox
             if ($MultiSelect) {
-                switch ($entriesToPage[($pageFirstEntry + $positionCurrent)].Selected) {
+                switch ($menuEntries[($pageEntryFirst + $lineCurrent)].Selected) {
                     $true {
-                        $pageEntrySelected = '[X] '
+                        $pageEntryCheck = '[X] '
                     }
                 	Default {
-                        $pageEntrySelected = '[ ] '
+                        $pageEntryCheck = '[ ] '
                     }
                 }
             }
 
             # Write entry
-            [System.Console]::Write('  ' + $pageEntrySelected + $entriesToPage[($pageFirstEntry + $positionCurrent)].Name + '  ')
+            [System.Console]::Write('  ' + $pageEntryCheck + $menuEntries[($pageEntryFirst + $lineCurrent)].Name + '  ')
 
             # Reset colours
             [System.Console]::ForegroundColor = $colorForeground
@@ -242,86 +254,85 @@ function Write-Menu {
         }
 
         # Write page indicator
-        [System.Console]::WriteLine("`n Page $($Page + 1) / $($pageTotal + 1)`n")
+        [System.Console]::WriteLine("`n Page $($pageCurrent + 1) / $($pageTotal + 1)`n")
+
+        # Selected entry
+        $entrySelected = $menuEntries[($pageEntryFirst + $lineSelected)]
 
         <#
             User Input
         #>
 
-        # Read key input
-        $menuInput = [System.Console]::ReadKey($true)
-
-        # Selected entry
-        $entrySelected = $entriesToPage[($pageFirstEntry + $positionSelected)]
-
-        # Key actions
+        $menuInput = [System.Console]::ReadKey($true) # Pressed key
         switch ($menuInput.Key) {
-            'DownArrow' { # Next entry
-                if ($positionSelected -lt ($pageEntriesCount - 1)) { # Check if bottom of list
-                    $positionSelected++
-                }
-            }
-            'UpArrow' { # Previous entry
-                if ($positionSelected -gt 0) { # Check if top of list
-                    $positionSelected--
-                }
-            }
-            'Home' { # Move to top entry
-                $positionSelected = 0
-            }
-            'End' { # Move to bottom entry
-                $positionSelected = ($pageEntriesCount - 1)
-            }
-            {$_ -in 'LeftArrow','PageUp'} { # Previous page
-                if ($Page -ne 0) { # Check if on first page
-                    $Page--
-                    $positionSelected = 0
-                    Clear-Host
-                    Get-PageEntries
-                }
-            }
-            {$_ -in 'RightArrow','PageDown'} { # Next page
-                if ($Page -ne $pageTotal) { # Check if on last page
-                    $Page++
-                    $positionSelected = 0
-                    Clear-Host
-                    Get-PageEntries
-                }
-            }
-            {$_ -in 'Escape','Backspace'} { # Exit menu
-                $menuLoop = $false
+
+            # Exit
+            {$_ -in 'Escape','Backspace'} {
                 Clear-Host
-                return $false
+                if ($menuNested.Count -ne 0) {
+                    $lineSelected = 0
+                    $Title = $($menuNested.GetEnumerator())[$menuNested.Count - 1].Name
+                    Get-Menu $($menuNested.GetEnumerator())[$menuNested.Count - 1].Value
+                    Get-Page
+                    $menuNested.RemoveAt($menuNested.Count - 1) | Out-Null
+                } else {
+                    $menuLoop = $false; return $false
+                }; break
             }
-            'Spacebar' { # Check selection
+            # Next + previous entry
+            'DownArrow' { if ($lineSelected -lt ($pageEntryTotal - 1)) { $lineSelected++ }; break }
+            'UpArrow' { if ($lineSelected -gt 0) { $lineSelected-- }; break }
+
+            # Jump to top + bottom
+            'Home' { $lineSelected = 0; break }
+            'End' { $lineSelected = ($pageEntryTotal - 1); break }
+
+            # Next + previous page
+            {$_ -in 'RightArrow','PageDown'} {
+                if ($pageCurrent -ne $pageTotal) {
+                    $pageCurrent++; $lineSelected = 0; Clear-Host; Get-PageEntries
+                }; break
+            }
+            {$_ -in 'LeftArrow','PageUp'} {
+                if ($pageCurrent -ne 0) {
+                    $pageCurrent--; $lineSelected = 0; Clear-Host; Get-PageEntries
+                }; break
+            }
+
+            # MultiSelect - Check selection
+            'Spacebar' {
                 switch ($entrySelected.Selected) {
                     $true { $entrySelected.Selected = $false }
                 	$false { $entrySelected.Selected = $true }
-                }
+                }; break
             }
-            'Enter' { # Confirm selection
-                $menuLoop = $false
+
+            # Confirm selection
+            'Enter' {
                 Clear-Host
-                switch ($MultiSelect) {
-                    $true {
-                        $entriesToPage | ForEach-Object {
-                            if ($_.Selected) {
-                                if ($_.Command -notlike $null) {
-                                    Invoke-Expression -Command $_.Command
-                                } else {
-                                    return $_.Name
-                                }
-                            }
+                if ($MultiSelect) {
+                    $menuLoop = $false
+                    $menuEntries | ForEach-Object {
+                        if (($_.Selected) -and ($_.Command -notlike $null)) {
+                            Invoke-Expression -Command $_.Command
+                        } elseif ($_.Selected) {
+                            return $_.Name
                         }
                     }
-                    $false {
-                        if ($entrySelected.Command -notlike $null) {
-                            Invoke-Expression -Command $entrySelected.Command
-                        } else {
-                            return $entrySelected.Name
-                        }
+                } else {
+                    if ($entrySelected.Command.GetType().Name -eq 'Hashtable') {
+                        # Save parent menu
+                        $menuNested.$Title = $inputEntries
+
+                        # Initialise nested menu
+                        $Title = $entrySelected.Name; $lineSelected = 0
+                        Get-Menu $entrySelected.Command; Get-Page
+                    } elseif ($entrySelected.Command -notlike $null) {
+                        $menuLoop = $false; Invoke-Expression -Command $entrySelected.Command
+                    } else {
+                        $menuLoop = $false; return $entrySelected.Name
                     }
-                }
+                }; break
             }
         }
     } while ($menuLoop)
