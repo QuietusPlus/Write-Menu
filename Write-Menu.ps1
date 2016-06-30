@@ -290,12 +290,12 @@ function Write-Menu {
             # Next + previous page
             {$_ -in 'RightArrow','PageDown'} {
                 if ($pageCurrent -ne $pageTotal) {
-                    $pageCurrent++; $lineSelected = 0; Clear-Host; Get-PageEntries
+                    $pageCurrent++; $lineSelected = 0; Clear-Host; Get-Page
                 }; break
             }
             {$_ -in 'LeftArrow','PageUp'} {
                 if ($pageCurrent -ne 0) {
-                    $pageCurrent--; $lineSelected = 0; Clear-Host; Get-PageEntries
+                    $pageCurrent--; $lineSelected = 0; Clear-Host; Get-Page
                 }; break
             }
 
