@@ -92,11 +92,6 @@ function Write-Menu {
         [switch]$MultiSelect
     )
 
-    function Write-MessageBox($message) {
-        [System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms')
-        [System.Windows.Forms.MessageBox]::Show($message)
-    }
-
     <#
         Get menu data
     #>
