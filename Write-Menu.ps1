@@ -320,15 +320,17 @@ function Write-Menu {
                         }
                     }
                 } else {
-                    if ($entrySelected.Command.GetType().Name -eq 'Hashtable') {
-                        # Save parent menu
-                        $menuNested.$Title = $inputEntries
+                    if ($entrySelected.Command -notlike $null) {
+                        if ($entrySelected.Command.GetType().Name -eq 'Hashtable') {
+                            # Save parent menu
+                            $menuNested.$Title = $inputEntries
 
-                        # Initialise nested menu
-                        $Title = $entrySelected.Name; $lineSelected = 0
-                        Get-Menu $entrySelected.Command; Get-Page
-                    } elseif ($entrySelected.Command -notlike $null) {
-                        $menuLoop = $false; Invoke-Expression -Command $entrySelected.Command
+                            # Initialise nested menu
+                            $Title = $entrySelected.Name; $lineSelected = 0
+                            Get-Menu $entrySelected.Command; Get-Page
+                        } else {
+                            $menuLoop = $false; Invoke-Expression -Command $entrySelected.Command
+                        }
                     } else {
                         $menuLoop = $false; return $entrySelected.Name
                     }
