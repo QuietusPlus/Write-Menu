@@ -305,29 +305,36 @@ function Write-Menu {
             # Confirm selection
             'Enter' {
                 Clear-Host
+                # Check if -MultiSelect has been defined
                 if ($MultiSelect) {
-                    $menuLoop = $false
+                    $menuLoop = $false # Exit menu
                     $menuEntries | ForEach-Object {
+                        # Entry contains command, invoke it
                         if (($_.Selected) -and ($_.Command -notlike $null)) {
                             Invoke-Expression -Command $_.Command
+                        # Return name, entry does not contain command
                         } elseif ($_.Selected) {
                             return $_.Name
                         }
                     }
                 } else {
+                    # Entry contains a command
                     if ($entrySelected.Command -notlike $null) {
-                        if ($entrySelected.Command.GetType().Name -eq 'Hashtable') {
-                            # Save parent menu
-                            $menuNested.$Title = $inputEntries
-
-                            # Initialise nested menu
-                            $Title = $entrySelected.Name; $lineSelected = 0
-                            Get-Menu $entrySelected.Command; Get-Page
-                        } else {
-                            $menuLoop = $false; Invoke-Expression -Command $entrySelected.Command
+                        # Hashtable
+                        if ((($entrySelected.Command).GetType()) -like 'Hashtable') {
+                            $menuNested.$Title = $inputEntries; $Title = $entrySelected.Name; $lineSelected = 0
+                            Get-Menu $($entrySelected.Command); Get-Page
+                        # Invoke, see if type is array
+                        } elseif ((($entryInvoke = Invoke-Expression -Command $entrySelected.Command).GetType().BaseType) -like 'Array') {
+                            $menuNested.$Title = $inputEntries; $Title = $entrySelected.Name; $lineSelected = 0
+                            Get-Menu $entryInvoke; Get-Page
+                        } else { # Not a submenu, invoke and exit instead
+                            $menuLoop = $false
+                            Invoke-Expression -Command $entrySelected.Command
                         }
-                    } else {
-                        $menuLoop = $false; return $entrySelected.Name
+                    } else { # Return name and exit
+                        $menuLoop = $false
+                        return $entrySelected.Name
                     }
                 }; break
             }
