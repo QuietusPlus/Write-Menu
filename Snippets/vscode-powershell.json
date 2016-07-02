@@ -1,0 +1,89 @@
+{
+    /*
+        Custom: Write-Menu
+    */
+
+    "Write-Menu Command": {
+        "prefix": "Menu Commmand [Write-Menu]",
+        "body": [
+            "Write-Menu -Title '${1:MenuTitle}' -Sort -Entries (Get-$2).${3:Name}$4"
+        ],
+        "description": "Write-Menu using the output from a command"
+    },
+
+    "Write-Menu Array": {
+        "prefix": "Menu Array [Write-Menu]",
+        "body": [
+            "Write-Menu -Title '${1:MenuTitle}' -Sort -Entries $(",
+            "\t'${2:MenuEntry}'$3",
+            ")$4"
+        ],
+        "description": "Write-Menu using an array"
+    },
+
+    "Write-Menu array -Multiselect": {
+        "prefix": "Menu Array MultiSelect [Write-Menu]",
+        "body": [
+            "Write-Menu -Title '${1:MenuTitle}' -Sort -Multiselect -Entries $(",
+            "\t'${2:MenuEntry}'$3",
+            ")$4"
+        ],
+        "description": "Write-Menu using an array with -MultiSelect enabled"
+    },
+
+    "Write-Menu hashtable": {
+        "prefix": "Menu Hashtable [Write-Menu]",
+        "body": [
+            "Write-Menu -Title '${1:MenuTitle}' -Sort -Entries @{",
+            "\t'${2:MenuEntry}' = '${3:Command}'$4",
+            "}$5"
+        ],
+        "description": "Write-Menu using a hashtable"
+    },
+
+    "Write-Menu hashtable -Multiselect": {
+        "prefix": "Menu Hashtable MultiSelect [Write-Menu]",
+        "body": [
+            "Write-Menu -Title '${1:MenuTitle}' -Multiselect -Sort -Entries @{",
+            "\t'${2:MenuEntry}' = '${3:Command}'$4",
+            "}$5"
+        ],
+        "description": "Write-Menu using a hashtable with -MultiSelect enabled"
+    },
+
+    "Write-Menu Nested Array": {
+        "prefix": "Menu Entry Nested Array [Write-Menu]",
+        "body": [
+            "'${1:NestedMenuTitle}' = @(",
+            "\t'${2:MenuEntry}'$3",
+            ")$4"
+        ],
+        "description": "Write-Menu nested array entry"
+    },
+
+    "Write-Menu Nested Hashtable": {
+        "prefix": "Menu Entry Nested Hashtable  [Write-Menu]",
+        "body": [
+            "'${1:NestedMenuTitle}' = @{",
+            "\t'${2:MenuEntry}' = '${3:Command}'$4",
+            "}$5"
+        ],
+        "description": "Write-Menu nested hashtable entry"
+    },
+
+    "Write-Menu Array Entry": {
+        "prefix": "Menu Entry Array [Write-Menu]",
+        "body": [
+            "'${2:MenuEntry}'$3"
+        ],
+        "description": "Write-Menu array entry"
+    },
+
+    "Write-Menu Hashtable Entry": {
+        "prefix": "Menu Entry Hashtable [Write-Menu]",
+        "body": [
+            "'${2:MenuEntry}' = '${3:Command}'$4"
+        ],
+        "description": "Write-Menu hashtable entry"
+    }
+}
