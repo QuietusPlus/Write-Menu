@@ -8,6 +8,8 @@
 
 ![AppxPackages](Examples/MultiSelect.gif)
 
+_NOTE: The last screengrab is missing some frames due to editing, which is why it seems to returns more packages than selected/checked..._
+
 ## Description
 
 Outputs a command-line menu which can be navigated using the keyboard. Automatically creates multiple pages if the entries cannot fit on screen.
