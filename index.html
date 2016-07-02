@@ -37,7 +37,15 @@
 <h2>
 <a id="description" class="anchor" href="#description" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Description</h2>
 
-<p>Outputs a command-line menu which can be navigated using the keyboard. Automatically creates multiple pages if the entries cannot fit on screen.</p>
+<p>Outputs a command-line menu which can be navigated using the keyboard.</p>
+
+<ul>
+<li>Automatically creates multiple pages if the entries cannot fit on-screen.</li>
+<li>Supports nested menus using a combination of hashtables and arrays.</li>
+<li>Unlimited entries (if the device can handle it).</li>
+<li>-MultiSelect: Use space to check a selection, all checked entries will be invoked / returned upon confirmation.</li>
+<li>Jump to the top / bottom of the page using the <kbd>Home</kbd> and <kbd>End</kbd> keys.</li>
+</ul>
 
 <h2>
 <a id="parameters" class="anchor" href="#parameters" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Parameters</h2>
@@ -75,6 +83,32 @@
 <td align="left">Optional</td>
 <td align="left">MultiSelect</td>
 <td align="left"><code>-MultiSelect</code></td>
+</tr>
+</tbody>
+</table>
+
+<h2>
+<a id="examples" class="anchor" href="#examples" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Examples</h2>
+
+<table>
+<thead>
+<tr>
+<th align="left">Example</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left"><a href="Examples/AdvancedMenu.md">AdvancedMenu</a></td>
+<td align="left">Create a nested menu using multiple hashtables and arrays</td>
+</tr>
+<tr>
+<td align="left"><a href="Examples/AppxPackages.md">AppxPackages</a></td>
+<td align="left">Uses Write-Menu to list app packages (Windows Store/Modern Apps)</td>
+</tr>
+<tr>
+<td align="left"><a href="Examples/CustomMenu.md">CustomMenu</a></td>
+<td align="left">Generates a custom menu by manually specifying each entry</td>
 </tr>
 </tbody>
 </table>
@@ -130,29 +164,7 @@
 <td align="left">
 <kbd>Esc</kbd> / <kbd>Backspace</kbd>
 </td>
-<td align="left">Exit</td>
-</tr>
-</tbody>
-</table>
-
-<h2>
-<a id="examples" class="anchor" href="#examples" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Examples</h2>
-
-<table>
-<thead>
-<tr>
-<th align="left"></th>
-<th align="left">Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td align="left"><a href="Examples/AppxPackages.md">AppxPackages</a></td>
-<td align="left">Uses Write-Menu to list app packages (Windows Store/Modern Apps)</td>
-</tr>
-<tr>
-<td align="left"><a href="Examples/CustomMenu.md">CustomMenu</a></td>
-<td align="left">Generates a custom menu by manually specifying each entry</td>
+<td align="left">Exit / Previous menu</td>
 </tr>
 </tbody>
 </table>
