@@ -16,11 +16,11 @@ Outputs a command-line menu which can be navigated using the keyboard. Automatic
 
 |  | Parameter | Example |
 |:--|:--|:--|
-| Required | `-Entries` (array) | `-Entries @('Entry 1', 'Entry 2', 'Entry 3')` |
-|          | `-Entries` (hashtable) | `-Entries @{'Entry 1' = 'Write-Host "Command 1"'; 'Entry 2' = 'Write-Host "Command 2"'; 'Entry 3' = 'Write-Host "Command 3'"}` |
-| Optional | `-Title` | `-Title 'Example Title'` |
-| Optional | `-Sort` | `-Sort` |
-| Optional | `-MultiSelect` | `-MultiSelect`
+| Required | Entries (array) | `-Entries @('Entry 1', 'Entry 2', 'Entry 3')` |
+|          | Entries (hashtable) | `-Entries @{'Entry 1' = 'Write-Host "Command 1"'; 'Entry 2' = 'Write-Host "Command 2"'; 'Entry 3' = 'Write-Host "Command 3'"}` |
+| Optional | Title | `-Title 'Example Title'` |
+| Optional | Sort | `-Sort` |
+| Optional | MultiSelect | `-MultiSelect`
 
 ## Controls
 
