@@ -37,7 +37,7 @@ function Write-Menu {
             Enter                Confirm selection
             Escape               Exit menu
 
-        .PARAMETER Items
+        .PARAMETER Entries
             Menu entries.
 
         .PARAMETER Title
