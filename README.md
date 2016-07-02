@@ -17,7 +17,7 @@ Outputs a command-line menu which can be navigated using the keyboard.
 * Automatically creates multiple pages if the entries cannot fit on-screen.
 * Supports nested menus using a combination of hashtables and arrays.
 * Unlimited entries (if the device can handle it).
-* Optional -MultiSelect mode. Use space to check a selection, all selected entries will be invoked/returned upon confirmation.
+* -MultiSelect: Use space to check a selection, all checked entries will be invoked / returned upon confirmation.
 * Jump to the top / bottom of the page using the <kbd>Home</kbd> and <kbd>End</kbd> keys.
 
 
@@ -30,6 +30,14 @@ Outputs a command-line menu which can be navigated using the keyboard.
 | Optional | Title | `-Title 'Example Title'` |
 | Optional | Sort | `-Sort` |
 | Optional | MultiSelect | `-MultiSelect`
+
+## Examples
+
+| Example | Description |
+| :-- | :-- |
+| [AdvancedMenu](Examples/AdvancedMenu.md) | Create a nested menu using multiple hashtables and arrays |
+| [AppxPackages](Examples/AppxPackages.md) | Uses Write-Menu to list app packages (Windows Store/Modern Apps) |
+| [CustomMenu](Examples/CustomMenu.md) | Generates a custom menu by manually specifying each entry |
 
 ## Controls
 
@@ -45,10 +53,3 @@ Outputs a command-line menu which can be navigated using the keyboard.
 | <kbd>Enter</kbd> | Confirm selection |
 | <kbd>Esc</kbd> / <kbd>Backspace</kbd> | Exit / Previous menu |
 
-## Examples
-
-| | Description |
-| :-- | :-- |
-| [AdvancedMenu](Examples/AdvancedMenu.md) | Create a nested menu using multiple hashtables and arrays |
-| [AppxPackages](Examples/AppxPackages.md) | Uses Write-Menu to list app packages (Windows Store/Modern Apps) |
-| [CustomMenu](Examples/CustomMenu.md) | Generates a custom menu by manually specifying each entry |
