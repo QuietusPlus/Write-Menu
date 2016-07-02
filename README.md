@@ -1,8 +1,14 @@
-#Write-Menu
+# Write-Menu
+
+### -Title 'AppxPackages' -Sort -Entries (Get-AppxPackages).Name
 
 ![AppxPackages](Examples/AppxPackages.gif)
 
-##Description
+### -Title 'AppxPackages' -Sort -MultiSelect -Entries (Get-AppxPackages).Name
+
+![AppxPackages](Examples/MultiSelect.gif)
+
+## Description
 
 Outputs a command-line menu which can be navigated using the keyboard. Automatically creates multiple pages if the entries cannot fit on screen.
 
@@ -10,11 +16,11 @@ Outputs a command-line menu which can be navigated using the keyboard. Automatic
 
 |  | Parameter | Example |
 |:--|:--|:--|
-| Required | -Entries (array) | `-Entries @('Entry 1', 'Entry 2', 'Entry 3')` |
-|          | -Entries (hashtable) | `-Entries @{'Entry 1' = 'Write-Host "Command 1"'; 'Entry 2' = 'Write-Host "Command 2"'; 'Entry 3' = 'Write-Host "Command 3'"}` |
-| Optional | -Title (-Name) | `-Title 'Example Title'` |
-| Optional | -Page | `-Page 1` |
-| Optional | -Sort | `-Sort` |
+| Required | `-Entries` (array) | `-Entries @('Entry 1', 'Entry 2', 'Entry 3')` |
+|          | `-Entries` (hashtable) | `-Entries @{'Entry 1' = 'Write-Host "Command 1"'; 'Entry 2' = 'Write-Host "Command 2"'; 'Entry 3' = 'Write-Host "Command 3'"}` |
+| Optional | `-Title` | `-Title 'Example Title'` |
+| Optional | `-Sort` | `-Sort` |
+| Optional | `-MultiSelect` | `-MultiSelect`
 
 ## Controls
 
@@ -26,6 +32,7 @@ Outputs a command-line menu which can be navigated using the keyboard. Automatic
 | <kbd>Right</kbd> / <kbd>PageDown</kbd> | Next page |
 | <kbd>Home</kbd> | Jump to top |
 | <kbd>End</kbd> | Jump to bottom |
+| <kbd>Space</kbd> | Check selection (-MultiSelect only) |
 | <kbd>Enter</kbd> | Confirm selection |
 | <kbd>Esc</kbd> / <kbd>Backspace</kbd> | Exit |
 
