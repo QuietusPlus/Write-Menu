@@ -16,8 +16,9 @@ Outputs a command-line menu which can be navigated using the keyboard.
 
 * Automatically creates multiple pages if the entries cannot fit on-screen.
 * Supports nested menus using a combination of hashtables and arrays.
-* Unlimited entries (if the device can handle it).
-* -MultiSelect: Use space to check a selection, all checked entries will be invoked / returned upon confirmation.
+* No entry / page limitations (apart from device performance).
+* Sort entries using the -Sort parameter.
+* -MultiSelect: Use space to check a selected entry, all checked entries will be invoked / returned upon confirmation.
 * Jump to the top / bottom of the page using the <kbd>Home</kbd> and <kbd>End</kbd> keys.
 
 

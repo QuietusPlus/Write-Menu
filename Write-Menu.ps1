@@ -25,38 +25,49 @@
 function Write-Menu {
     <#
         .NOTES
-            Write-Menu
-            by QuietusPlus
-
-            Inspired by "Simple Textbased Powershell Menu" [Michael Albert]
+            Write-Menu by QuietusPlus (inspired by "Simple Textbased Powershell Menu" [Michael Albert])
 
         .SYNOPSIS
-            Outputs a command-line menu, which can be navigated using the keyboard.
+            Outputs a command-line menu which can be navigated using the keyboard.
 
         .DESCRIPTION
-            Outputs a command-line menu, which can be navigated using the keyboard.
+            Outputs a command-line menu which can be navigated using the keyboard.
+
+            * Automatically creates multiple pages if the entries cannot fit on-screen.
+            * Supports nested menus using a combination of hashtables and arrays.
+            * No entry / page limitations (apart from device performance).
+            * Sort entries using the -Sort parameter.
+            * -MultiSelect: Use space to check a selected entry, all checked entries will be invoked / returned upon confirmation.
+            * Jump to the top / bottom of the page using the "Home" and "End" keys.
 
             Controls             Description
             --------             -----------
-            Arrow Up + Down      Change selection
-            Arrow Left + Right   Switch pages
+            Up                   Previous entry
+            Down                 Next entry
+            Left / PageUp        Previous page
+            Right / PageDown     Next page
+            Home                 Jump to top
+            End                  Jump to bottom
+            Space                Check selection (-MultiSelect only)
             Enter                Confirm selection
-            Escape               Exit menu
+            Esc / Backspace      Exit / Previous menu
 
         .PARAMETER Entries
-            Menu entries.
+            Array / hashtable containing menu entries.
 
         .PARAMETER Title
-            Title shown at the top.
+            Title shown at the top of the menu.
 
         .PARAMETER Sort
-            Sort entries before they are added to the menu.
+            Sort entries before they are displayed.
 
         .PARAMETER MultiSelect
-            Select multiple entries using spacebar. Confirm returns or executes all checked entries.
+            Use space to check a selected entry, all checked entries will be invoked / returned upon confirmation.
 
         .EXAMPLE
-            PS > $menuReturn = Write-Menu -Title 'Menu Title' -Entries @('Menu Option 1', 'Menu Option 2', 'Menu Option 3', 'Menu Option 4')
+            PS C:\>$menuReturn = Write-Menu -Title 'Menu Title' -Entries @('Menu Option 1', 'Menu Option 2', 'Menu Option 3', 'Menu Option 4')
+
+            Output:
 
              Menu Title
 
@@ -68,9 +79,25 @@ function Write-Menu {
              Page 1 / 1
 
         .EXAMPLE
-            PS > $menuReturn = Write-Menu -Title 'AppxPackages' -Entries (Get-AppxPackage).Name -Sort
+            PS C:\>$menuReturn = Write-Menu -Title 'AppxPackages' -Entries (Get-AppxPackage).Name -Sort
 
             This example uses Write-Menu to sort and list app packages (Windows Store/Modern Apps) that are installed for the current profile.
+
+        .EXAMPLE
+            PS C:\>$menuReturn = Write-Menu -Title 'Advanced Menu' -Sort -Entries $menuEntries
+
+            $menuEntries = @{
+                'AppxPackages' = '(Get-AppxPackage).Name' # Nested menu using a command
+                'Nested Hashtable' = @{ # Manually defined nested menu
+                    'Custom Entry' = 'Write-Output "Custom Command"' # Command entry
+                    'Variables' = '(Get-Variable).Name' # Nested menu using a command
+                }
+            }
+
+            This example generates an advanced/nested menu using multiple hashtables and arrays.
+
+        .LINK
+            https://quietusplus.github.io/Write-Menu
 
         .LINK
             https://github.com/QuietusPlus/Write-Menu
