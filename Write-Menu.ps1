@@ -360,14 +360,14 @@ function Write-Menu {
                     switch ($entrySelected.Command) {
                         {($_ -notlike $null) -and (-not $IgnoreNested)} {
                             # Check if entry is hashtable
-                            if (($entrySelected.Command).GetType().Name -eq 'Hashtable') {
+                            if ($_.GetType().Name -eq 'Hashtable') {
                                 $menuNested.$Title = $inputEntries
                                 $Title = $entrySelected.Name; $lineSelected = 0
-                                Get-Menu $($entrySelected.Command)
+                                Get-Menu $($_)
                                 Get-Page
                                 break
                             # Invoke, see if type is array
-                            } elseif ((($entryInvoke = Invoke-Expression -Command $entrySelected.Command).GetType().BaseType).Name -eq 'Array') {
+                            } elseif ((($entryInvoke = Invoke-Expression -Command $_).GetType().BaseType).Name -eq 'Array') {
                                 $menuNested.$Title = $inputEntries
                                 $Title = $entrySelected.Name; $lineSelected = 0
                                 Get-Menu $entryInvoke
@@ -377,7 +377,7 @@ function Write-Menu {
                         }
                         {$_ -notlike $null} {
                             $menuLoop = $false
-                            Invoke-Expression -Command $entrySelected.Command
+                            Invoke-Expression -Command $_
                             break
                         }
                         Default {
