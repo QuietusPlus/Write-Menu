@@ -64,6 +64,9 @@ function Write-Menu {
         .PARAMETER MultiSelect
             Use space to check a selected entry, all checked entries will be invoked / returned upon confirmation.
 
+        .PARAMETER IgnoreNested
+            Do not check entries for nested hashtables or arrays.
+
         .EXAMPLE
             PS C:\>$menuReturn = Write-Menu -Title 'Menu Title' -Entries @('Menu Option 1', 'Menu Option 2', 'Menu Option 3', 'Menu Option 4')
 
@@ -122,7 +125,10 @@ function Write-Menu {
         [switch]$Sort,
 
         [Parameter()]
-        [switch]$MultiSelect
+        [switch]$MultiSelect,
+
+        [Parameter()]
+        [switch]$IgnoreNested
     )
 
     <#
@@ -351,23 +357,33 @@ function Write-Menu {
                         }
                     }
                 } else {
-                    # Entry contains a command
-                    if ($entrySelected.Command -notlike $null) {
-                        # Hashtable
-                        if ((($entrySelected.Command).GetType()) -like 'Hashtable') {
-                            $menuNested.$Title = $inputEntries; $Title = $entrySelected.Name; $lineSelected = 0
-                            Get-Menu $($entrySelected.Command); Get-Page
-                        # Invoke, see if type is array
-                        } elseif ((($entryInvoke = Invoke-Expression -Command $entrySelected.Command).GetType().BaseType) -like 'Array') {
-                            $menuNested.$Title = $inputEntries; $Title = $entrySelected.Name; $lineSelected = 0
-                            Get-Menu $entryInvoke; Get-Page
-                        } else { # Not a submenu, invoke and exit instead
+                    switch ($entrySelected.Command) {
+                        {($_ -notlike $null) -and (-not $IgnoreNested)} {
+                            # Check if entry is hashtable
+                            if (($entrySelected.Command).GetType().Name -eq 'Hashtable') {
+                                $menuNested.$Title = $inputEntries
+                                $Title = $entrySelected.Name; $lineSelected = 0
+                                Get-Menu $($entrySelected.Command)
+                                Get-Page
+                                break
+                            # Invoke, see if type is array
+                            } elseif ((($entryInvoke = Invoke-Expression -Command $entrySelected.Command).GetType().BaseType).Name -eq 'Array') {
+                                $menuNested.$Title = $inputEntries
+                                $Title = $entrySelected.Name; $lineSelected = 0
+                                Get-Menu $entryInvoke
+                                Get-Page
+                                break
+                            }
+                        }
+                        {$_ -notlike $null} {
                             $menuLoop = $false
                             Invoke-Expression -Command $entrySelected.Command
+                            break
                         }
-                    } else { # Return name and exit
-                        $menuLoop = $false
-                        return $entrySelected.Name
+                        Default {
+                            $menuLoop = $false
+                            return $entrySelected.Name
+                        }
                     }
                 }; break
             }
