@@ -277,7 +277,7 @@ function Write-Menu {
             {$_ -in 'Escape','Backspace'} {
                 Clear-Host
                 if ($menuNested.Count -ne 0) {
-                    $lineSelected = 0
+                    $lineSelected = 0; $pageCurrent = 0
                     $Title = $($menuNested.GetEnumerator())[$menuNested.Count - 1].Name
                     Get-Menu $($menuNested.GetEnumerator())[$menuNested.Count - 1].Value
                     Get-Page
