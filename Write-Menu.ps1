@@ -296,25 +296,25 @@ function Write-Menu {
                         $menuNested.RemoveAt($menuNested.Count - 1) | Out-Null
                     # Otherwise exit and return $null
                     } else { $menuLoop = $false; return $null }
-                    $inputLoop = $false; $break
+                    $inputLoop = $false; break
                 }
 
                 # Next and previous entry
-                'DownArrow' { if ($lineSelected -lt ($pageEntryTotal - 1)) { $lineSelected++ }; $inputLoop = $false; $break }
-                'UpArrow' { if ($lineSelected -gt 0) { $lineSelected-- }; $inputLoop = $false; $break}
+                'DownArrow' { if ($lineSelected -lt ($pageEntryTotal - 1)) { $lineSelected++ }; $inputLoop = $false; break }
+                'UpArrow' { if ($lineSelected -gt 0) { $lineSelected-- }; $inputLoop = $false; break}
 
                 # Jump to top and bottom of list
-                'Home' { $lineSelected = 0; $inputLoop = $false; $break}
-                'End' { $lineSelected = ($pageEntryTotal - 1); $inputLoop = $false; $break }
+                'Home' { $lineSelected = 0; $inputLoop = $false; break}
+                'End' { $lineSelected = ($pageEntryTotal - 1); $inputLoop = $false; break }
 
                 # Next page
                 { $_ -in 'RightArrow','PageDown' } {
-                    if ($pageCurrent -ne $pageTotal) { $pageCurrent++; $lineSelected = 0; Clear-Host; Get-Page }; $inputLoop = $false; $break
+                    if ($pageCurrent -ne $pageTotal) { $pageCurrent++; $lineSelected = 0; Clear-Host; Get-Page }; $inputLoop = $false; break
                 }
 
                 # Previous page
                 { $_ -in 'LeftArrow','PageUp' } {
-                    if ($pageCurrent -ne 0) { $pageCurrent--; $lineSelected = 0; Clear-Host; Get-Page }; $inputLoop = $false; $break
+                    if ($pageCurrent -ne 0) { $pageCurrent--; $lineSelected = 0; Clear-Host; Get-Page }; $inputLoop = $false; break
                 }
 
                 # Check selection (-MultiSelect)
@@ -322,7 +322,7 @@ function Write-Menu {
                     switch ($entrySelected.Selected) {
                         $true { $entrySelected.Selected = $false }
                         $false { $entrySelected.Selected = $true }
-                    }; $inputLoop = $false; $break
+                    }; $inputLoop = $false; break
                 }
 
 
