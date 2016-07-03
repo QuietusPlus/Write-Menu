@@ -344,48 +344,50 @@ function Write-Menu {
             # Confirm selection
             'Enter' {
                 Clear-Host
-                # Check if -MultiSelect has been defined
-                if ($MultiSelect) {
-                    $menuLoop = $false # Exit menu
-                    $menuEntries | ForEach-Object {
-                        # Entry contains command, invoke it
-                        if (($_.Selected) -and ($_.Command -notlike $null)) {
-                            Invoke-Expression -Command $_.Command
-                        # Return name, entry does not contain command
-                        } elseif ($_.Selected) {
-                            return $_.Name
-                        }
-                    }
-                } else {
-                    switch ($entrySelected.Command) {
-                        {($_ -notlike $null) -and (-not $IgnoreNested)} {
-                            # Check if entry is hashtable
-                            if ($_.GetType().Name -eq 'Hashtable') {
-                                $menuNested.$Title = $inputEntries
-                                $Title = $entrySelected.Name; $lineSelected = 0
-                                Get-Menu $($_)
-                                Get-Page
-                                break
-                            # Invoke, see if type is array
-                            } elseif ((($entryInvoke = Invoke-Expression -Command $_).GetType().BaseType).Name -eq 'Array') {
-                                $menuNested.$Title = $inputEntries
-                                $Title = $entrySelected.Name; $lineSelected = 0
-                                Get-Menu $entryInvoke
-                                Get-Page
-                                break
+                switch ($entrySelected) {
+                    # Check if -MultiSelect has been defined
+                    {$MultiSelect} {
+                        $menuLoop = $false # Exit menu
+                        $menuEntries | ForEach-Object {
+                            # Entry contains command, invoke it
+                            if (($_.Selected) -and ($_.Command -notlike $null)) {
+                                Invoke-Expression -Command $_.Command
+                            # Return name, entry does not contain command
+                            } elseif ($_.Selected) {
+                                return $_.Name
                             }
-                        }
-                        {$_ -notlike $null} {
-                            $menuLoop = $false
-                            Invoke-Expression -Command $_
+                        }; break
+                    }
+                    # Check if -IgnoreNested has been defined, otherwise check if entry is nested menu
+                    {($_.Command -notlike $null) -and (-not $IgnoreNested)} {
+                        # Hashtable
+                        if ($_.Command.GetType().Name -eq 'Hashtable') {
+                            $menuNested.$Title = $inputEntries
+                            $Title = $_.Name; $lineSelected = 0
+                            Get-Menu $($_.Command)
+                            Get-Page
+                            break
+                        # Array
+                        } elseif ((($entryInvoke = Invoke-Expression -Command $_.Command).GetType().BaseType).Name -eq 'Array') {
+                            $menuNested.$Title = $inputEntries
+                            $Title = $_.Name; $lineSelected = 0
+                            Get-Menu $entryInvoke
+                            Get-Page
                             break
                         }
-                        Default {
-                            $menuLoop = $false
-                            return $entrySelected.Name
-                        }
                     }
-                }; break
+                    # Entry has command associated with it
+                    {$_.Command -notlike $null} {
+                        $menuLoop = $false
+                        Invoke-Expression -Command $_.Command
+                        break
+                    }
+                    # Return entry name
+                    Default {
+                        $menuLoop = $false
+                        return $_.Name
+                    }
+                }
             }
         }
     } while ($menuLoop)
