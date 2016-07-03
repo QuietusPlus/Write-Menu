@@ -22,6 +22,31 @@
     SOFTWARE.
 #>
 
+function Set-ColorInverted {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+
+    param(
+        [Parameter()]
+        [switch]$Force
+    )
+
+    begin {
+        $PSBoundParameters.Remove('Force') | Out-Null
+        $PSBoundParameters.Confirm = $false
+    }
+
+    process {
+        if ($Force -or $PSCmdlet.ShouldProcess('Invert foreground and background color', $host)) {
+            # Get current colours
+            $colorForeground = [System.Console]::ForegroundColor
+            $colorBackground = [System.Console]::BackgroundColor
+            # Invert colours
+            [System.Console]::ForegroundColor = $colorBackground
+            [System.Console]::BackgroundColor = $colorForeground
+        }
+    }
+}
+
 function Write-Menu {
     <#
         .NOTES
@@ -132,7 +157,7 @@ function Write-Menu {
     )
 
     <#
-        Get menu data
+        Functions
     #>
 
     function Get-Menu($script:inputEntries) {
@@ -178,7 +203,7 @@ function Write-Menu {
 
         # Sort entries
         if ($Sort -eq $true) {
-            $global:menuEntries = $menuEntries | Sort-Object -Property Name
+            $script:menuEntries = $menuEntries | Sort-Object -Property Name
         }
 
         # Set current page + get total pages + sort entries
@@ -186,13 +211,9 @@ function Write-Menu {
         $script:pageTotal = [math]::Ceiling((($menuEntryTotal - $pageSize) / $pageSize))
     }
 
-    <#
-        Get page data
-    #>
-
     function Get-Page {
         # Write title
-        [System.Console]::WriteLine($menuTitle)
+        [System.Console]::WriteLine("$menuTitle")
 
         # Get index of first entry
         $script:pageEntryFirst = ($pageSize * $pageCurrent)
@@ -215,51 +236,41 @@ function Write-Menu {
         Initialisation
     #>
 
+    # Clear console
     Clear-Host
 
-    # Check requirements
+    # Check dependencies
     if ($Entries -like $null) { Write-Error "Missing -Entries parameter!"; return } # Entries is defined
     if ($host.Name -ne 'ConsoleHost') { # Host is console
-        Write-Error "[$($host.Name)] Cannot run inside host, please use a console window instead!"
-        return
+        Write-Error "[$($host.Name)] Cannot run inside host, please use a console window instead!"; return
     }
 
-    # Get current colours + Set inverted colours
-    $colorForeground = [System.Console]::ForegroundColor; $colorBackground = [System.Console]::BackgroundColor
-    $colorForegroundSelected = $colorBackground; $colorBackgroundSelected = $colorForeground
-
-    # First run
+    # Get menu and page + Declare nested hashtable
     Get-Menu $Entries; Get-Page
     $menuNested = [ordered]@{}
 
-    <#
-        Write page
-    #>
-
+    # Start looping through menu
     do { $menuLoop = $true; [System.Console]::CursorTop = ($lineTop - $lineTotal)
 
-        # Write entries
+        <#
+            Write page
+        #>
+
         for ($lineCurrent = 0; $lineCurrent -le ($pageEntryTotal - 1); $lineCurrent++) {
-            # Move to beginning of line
-            [System.Console]::Write("`r")
+            # Check if entry should be highlighted
+            $lineHighlight = ($lineCurrent -eq $lineSelected)
 
-            # Invert colours if entry is selected
-            if ($lineCurrent -eq $lineSelected) {
-                [System.Console]::BackgroundColor = $colorBackgroundSelected
-                [System.Console]::ForegroundColor = $colorForegroundSelected
+            # Define checkbox when -MultiSelect is enabled
+            if ($MultiSelect -and ($menuEntries[($pageEntryFirst + $lineCurrent)].Selected)) {
+                $pageEntryCheck = ' [X]'
+            } elseif ($MultiSelect) {
+                $pageEntryCheck = ' [ ]'
             }
 
-            # Define checkbox
-            if ($MultiSelect) {
-                switch ($menuEntries[($pageEntryFirst + $lineCurrent)].Selected) {
-                    $true { $pageEntryCheck = '[X] ' }
-                	Default { $pageEntryCheck = '[ ] ' }
-                }
-            }
-
-            # Write entry + Reset colours + Empty line
-            [System.Console]::Write('  ' + $pageEntryCheck + $menuEntries[($pageEntryFirst + $lineCurrent)].Name + '  ')
-            [System.Console]::ForegroundColor = $colorForeground; [System.Console]::BackgroundColor = $colorBackground
+            # Invert colours if selected + Write entry + Reset colours + New line
+            if ($lineHighlight) { Set-ColorInverted -Force }
+            [System.Console]::Write("`r  " + $pageEntryCheck + $menuEntries[($pageEntryFirst + $lineCurrent)].Name + '  ')
+            if ($lineHighlight) { Set-ColorInverted -Force }
             [System.Console]::WriteLine('')
         }
 
@@ -337,7 +348,7 @@ function Write-Menu {
                                 $menuNested.$Title = $inputEntries
                                 $Title = $_.Name; $lineSelected = 0
                                 Get-Menu $($_.Command); Get-Page; $inputLoop = $false; break
-                            } elseif ((($entryInvoke = Invoke-Expression -Command $_.Command).GetType().BaseType).Name -eq 'Array') { # Array
+                            } elseif ((($entryInvoke = $(Invoke-Expression -Command $_.Command)).GetType().BaseType).Name -eq 'Array') { # Array
                                 $menuNested.$Title = $inputEntries
                                 $Title = $_.Name; $lineSelected = 0
                                 Get-Menu $entryInvoke; Get-Page; $inputLoop = $false; break
