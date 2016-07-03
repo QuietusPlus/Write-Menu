@@ -215,50 +215,35 @@ function Write-Menu {
         Initialisation
     #>
 
-    # Clear screen
     Clear-Host
 
-    # Parameter: Entries
-    if ($Entries -like $null) {
-        Write-Error "Missing -Entries parameter!"
-        return
-    }
-
-    # Make sure host is console window
-    if ($host.Name -ne 'ConsoleHost') {
+    # Check requirements
+    if ($Entries -like $null) { Write-Error "Missing -Entries parameter!"; return } # Entries is defined
+    if ($host.Name -ne 'ConsoleHost') { # Host is console
         Write-Error "[$($host.Name)] Cannot run inside host, please use a console window instead!"
         return
     }
 
-    # Set colours, modify to change colours
-    $colorForeground = [System.Console]::ForegroundColor
-    $colorBackground = [System.Console]::BackgroundColor
-
-    # Set inverted colours
-    $colorForegroundSelected = $colorBackground
-    $colorBackgroundSelected = $colorForeground
+    # Get current colours + Set inverted colours
+    $colorForeground = [System.Console]::ForegroundColor; $colorBackground = [System.Console]::BackgroundColor
+    $colorForegroundSelected = $colorBackground; $colorBackgroundSelected = $colorForeground
 
     # First run
-    Get-Menu $Entries
-    Get-Page
-
-    # Get menu root
+    Get-Menu $Entries; Get-Page
     $menuNested = [ordered]@{}
 
     <#
         Write page
     #>
 
-    do {
-        $menuLoop = $true
-        [System.Console]::CursorTop = ($lineTop - $lineTotal)
+    do { $menuLoop = $true; [System.Console]::CursorTop = ($lineTop - $lineTotal)
 
         # Write entries
         for ($lineCurrent = 0; $lineCurrent -le ($pageEntryTotal - 1); $lineCurrent++) {
             # Move to beginning of line
             [System.Console]::Write("`r")
 
-            # If selected, invert colours
+            # Invert colours if entry is selected
             if ($lineCurrent -eq $lineSelected) {
                 [System.Console]::BackgroundColor = $colorBackgroundSelected
                 [System.Console]::ForegroundColor = $colorForegroundSelected
@@ -267,30 +252,19 @@ function Write-Menu {
             # Define checkbox
             if ($MultiSelect) {
                 switch ($menuEntries[($pageEntryFirst + $lineCurrent)].Selected) {
-                    $true {
-                        $pageEntryCheck = '[X] '
-                    }
-                	Default {
-                        $pageEntryCheck = '[ ] '
-                    }
+                    $true { $pageEntryCheck = '[X] ' }
+                	Default { $pageEntryCheck = '[ ] ' }
                 }
             }
 
-            # Write entry
+            # Write entry + Reset colours + Empty line
             [System.Console]::Write('  ' + $pageEntryCheck + $menuEntries[($pageEntryFirst + $lineCurrent)].Name + '  ')
-
-            # Reset colours
-            [System.Console]::ForegroundColor = $colorForeground
-            [System.Console]::BackgroundColor = $colorBackground
-
-            # Empty line
+            [System.Console]::ForegroundColor = $colorForeground; [System.Console]::BackgroundColor = $colorBackground
             [System.Console]::WriteLine('')
         }
 
-        # Write page indicator
+        # Write page indicator + Define selected entry
         [System.Console]::WriteLine("`n Page $($pageCurrent + 1) / $($pageTotal + 1)`n")
-
-        # Selected entry
         $entrySelected = $menuEntries[($pageEntryFirst + $lineSelected)]
 
         <#
@@ -299,8 +273,7 @@ function Write-Menu {
 
         $menuInput = [System.Console]::ReadKey($true) # Pressed key
         switch ($menuInput.Key) {
-
-            # Exit
+            # Exit menu
             {$_ -in 'Escape','Backspace'} {
                 Clear-Host
                 if ($menuNested.Count -ne 0) {
@@ -309,11 +282,10 @@ function Write-Menu {
                     Get-Menu $($menuNested.GetEnumerator())[$menuNested.Count - 1].Value
                     Get-Page
                     $menuNested.RemoveAt($menuNested.Count - 1) | Out-Null
-                } else {
-                    $menuLoop = $false; return $false
-                }; break
+                } else { $menuLoop = $false; return $false }; break
             }
-            # Next + previous entry
+
+            # Next/previous entry
             'DownArrow' { if ($lineSelected -lt ($pageEntryTotal - 1)) { $lineSelected++ }; break }
             'UpArrow' { if ($lineSelected -gt 0) { $lineSelected-- }; break }
 
@@ -321,23 +293,21 @@ function Write-Menu {
             'Home' { $lineSelected = 0; break }
             'End' { $lineSelected = ($pageEntryTotal - 1); break }
 
-            # Next + previous page
+            # Next page
             {$_ -in 'RightArrow','PageDown'} {
-                if ($pageCurrent -ne $pageTotal) {
-                    $pageCurrent++; $lineSelected = 0; Clear-Host; Get-Page
-                }; break
-            }
-            {$_ -in 'LeftArrow','PageUp'} {
-                if ($pageCurrent -ne 0) {
-                    $pageCurrent--; $lineSelected = 0; Clear-Host; Get-Page
-                }; break
+                if ($pageCurrent -ne $pageTotal) { $pageCurrent++; $lineSelected = 0; Clear-Host; Get-Page }; break
             }
 
-            # MultiSelect - Check selection
+            # Previous page
+            {$_ -in 'LeftArrow','PageUp'} {
+                if ($pageCurrent -ne 0) { $pageCurrent--; $lineSelected = 0; Clear-Host; Get-Page }; break
+            }
+
+            # Check selection (-MultiSelect)
             'Spacebar' {
                 switch ($entrySelected.Selected) {
                     $true { $entrySelected.Selected = $false }
-                	$false { $entrySelected.Selected = $true }
+                    $false { $entrySelected.Selected = $true }
                 }; break
             }
 
@@ -353,9 +323,7 @@ function Write-Menu {
                             if (($_.Selected) -and ($_.Command -notlike $null)) {
                                 Invoke-Expression -Command $_.Command
                             # Return name, entry does not contain command
-                            } elseif ($_.Selected) {
-                                return $_.Name
-                            }
+                            } elseif ($_.Selected) { return $_.Name }
                         }; break
                     }
                     # Check if -IgnoreNested has been defined, otherwise check if entry is nested menu
