@@ -164,12 +164,11 @@ function Write-Menu {
         # Set title if provided, adjust menu height accordingly
         if ($Title -notlike $null) {
             $host.UI.RawUI.WindowTitle = $Title
-            $script:menuTitle = "`n $Title`n"
-            $script:pageSize = ($host.UI.RawUI.WindowSize.Height - 7)
+            $script:menuTitle = "$Title"
         } else {
-            $script:menuTitle = ''
-            $script:pageSize = ($host.UI.RawUI.WindowSize.Height - 5)
+            $script:menuTitle = 'Menu'
         }
+        $script:pageSize = ($host.UI.RawUI.WindowSize.Height - 4)
 
         # Get entries type
         $inputType = ($inputEntries | ForEach-Object {
@@ -206,7 +205,7 @@ function Write-Menu {
                             $iNested = ""
                         }
                     }
-
+                    # Create object
                     $script:menuEntries += New-Object PSObject -Property @{
                         Command = $($inputEntries.Values)[$i]
                         Name = $($inputEntries.Keys)[$i]
@@ -222,11 +221,14 @@ function Write-Menu {
             $script:menuEntries = $menuEntries | Sort-Object -Property Name
         }
 
-        # Get longest string
+        # Get longest entry
         $script:pageWidth = ($menuEntries.Name | Measure-Object -Maximum -Property Length).Maximum
+        # Widen if -MultiSelect is enabled
         if ($MultiSelect) { $script:pageWidth += 4 }
+        # Set minimum page width
+        if ($pageWidth -lt 30) { $script:pageWidth = 30 }
 
-        # Set current page + get total pages + sort entries
+        # Set current + total pages
         $script:pageCurrent = 0
         $script:pageTotal = [math]::Ceiling((($menuEntryTotal - $pageSize) / $pageSize))
     }
@@ -235,8 +237,18 @@ function Write-Menu {
         # Clear console
         Clear-Host
 
-        # Write title
-        [System.Console]::WriteLine("$menuTitle")
+        # Get page information used in header
+        if ($pageTotal -ne 0) {
+            $pageNumber = "$($pageCurrent + 1)/$($pageTotal + 1)"
+        } else {
+            $pageNumber = ' '
+        }
+
+        # Calculate padding between title and page indicator
+        $menuHeaderPadding = [System.Math]::Ceiling($pageWidth - $menuTitle.Length + 2)
+
+        # Write header
+        [System.Console]::WriteLine("`n$("{0,0}{1,$menuHeaderPadding}" -f "  $menuTitle", "$pageNumber")`n")
 
         # Get index of first entry
         $script:pageEntryFirst = ($pageSize * $pageCurrent)
@@ -259,13 +271,20 @@ function Write-Menu {
     #>
 
     # Check dependencies
-    if ($Entries -like $null) { Write-Error "Missing -Entries parameter!"; return } # Entries is defined
+    if ($Entries -like $null) { # Entries is defined
+        Write-Error "Missing -Entries parameter!"
+        return
+    }
     if ($host.Name -ne 'ConsoleHost') { # Host is console
-        Write-Error "[$($host.Name)] Cannot run inside host, please use a console window instead!"; return
+        Write-Error "[$($host.Name)] Cannot run inside host, please use a console window instead!"
+        return
     }
 
-    # Get menu and page + Declare nested hashtable
-    Get-Menu $Entries; Get-Page
+    # Get menu and page
+    Get-Menu $Entries
+    Get-Page
+
+    # Declare hashtable for nested entries
     $menuNested = [ordered]@{}
 
     # Loop through menu
@@ -289,36 +308,31 @@ function Write-Menu {
 
             # Prefix checkbox if -MultiSelect is enabled
             if ($MultiSelect -and ($menuEntries[($pageEntryFirst + $lineCurrent)].Selected)) {
-                $pageEntry = '[X] ' + $pageEntry
+                $pageEntry = "[X] $pageEntry"
             } elseif ($MultiSelect) {
-                $pageEntry = '[ ] ' + $pageEntry
+                $pageEntry = "[ ] $pageEntry"
             }
 
             # Full width highlight + Nested menu indicator
             if ($menuEntries[($pageEntryFirst + $lineCurrent)].Nested -notlike $null) {
-                $pageEntry = $pageEntry.PadRight($pageWidth) + ' > '
+                $pageEntry = $pageEntry.PadRight($pageWidth) + ' >  '
             } else {
-                $pageEntry = $pageEntry.PadRight($pageWidth) + '   '
+                $pageEntry = $pageEntry.PadRight($pageWidth) + '  '
             }
 
             # Invert colours if selected + Write entry + Reset colours + New line
+            [System.Console]::Write("`r ")
             if ($lineHighlight) { Set-ColorInverted -Force }
-            [System.Console]::Write("`r  " + $pageEntry + "`n")
+            [System.Console]::Write("  $pageEntry`n")
             if ($lineHighlight) { Set-ColorInverted -Force }
         }
-
-        # Write page indicator
-        if ($pageCurrent -ne 0) { $pageIndicator = ' <' } else { $pageIndicator = '  ' }
-        $pageIndicator = $pageIndicator.PadRight($pageWidth / 3) + (" Page $($pageCurrent + 1) ")
-        if ($pageCurrent -ne $pageTotal) { $pageIndicator += ('> ').PadLeft($pageWidth / 3) }
-        [System.Console]::WriteLine("`n $pageIndicator `n")
 
         <#
             User Input
         #>
 
         # Loop through user input until valid key has been pressed
-        do { $inputLoop = $true;  $menuInput = [System.Console]::ReadKey($true)
+        do { $inputLoop = $true; $menuInput = [System.Console]::ReadKey($true)
             switch ($menuInput.Key) {
                 # Exit / Return
                 { $_ -in 'Escape', 'Backspace' } {
