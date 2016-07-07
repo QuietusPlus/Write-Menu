@@ -264,7 +264,7 @@ function Write-Menu {
     Get-Menu $Entries; Get-Page
     $menuNested = [ordered]@{}
 
-  # Loop through menu
+    # Loop through menu
     do { $menuLoop = $true; [System.Console]::CursorTop = $lineTop
 
         <#
@@ -279,16 +279,19 @@ function Write-Menu {
             # Check if entry should be highlighted
             $lineHighlight = ($lineCurrent -eq $lineSelected)
 
-            # Define checkbox when -MultiSelect is enabled
+            # Page entry
+            $pageEntry = $menuEntries[($pageEntryFirst + $lineCurrent)].Name
+
+            # Prefix checkbox if -MultiSelect is enabled
             if ($MultiSelect -and ($menuEntries[($pageEntryFirst + $lineCurrent)].Selected)) {
-                $pageEntryCheck = ' [X]'
+                $pageEntry = '[X] ' + $pageEntry
             } elseif ($MultiSelect) {
-                $pageEntryCheck = ' [ ]'
+                $pageEntry = '[ ] ' + $pageEntry
             }
 
             # Invert colours if selected + Write entry + Reset colours + New line
             if ($lineHighlight) { Set-ColorInverted -Force }
-            [System.Console]::Write("`r  " + $pageEntryCheck + $menuEntries[($pageEntryFirst + $lineCurrent)].Name + "  `n")
+            [System.Console]::Write("`r  " + $pageEntry + "  `n")
             if ($lineHighlight) { Set-ColorInverted -Force }
         }
 
