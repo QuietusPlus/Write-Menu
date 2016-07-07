@@ -186,16 +186,32 @@ function Write-Menu {
                         Command = $null
                         Name = $($inputEntries)[$i]
                         Selected = $false
+                        Nested = ""
                     }; $i++
                 }
             }
             System.Collections.Hashtable {
                 $script:menuEntryTotal = $inputEntries.Count
                 foreach ($i in 0..$($menuEntryTotal - 1)) {
+                    # Check for -IgnoreNested and -MultiSelect
+                    if ((-not $IgnoreNested) -and (-not $MultiSelect)) {
+                        # Check if entry is nested hashtable
+                        if ($($inputEntries.Values)[$i].GetType().Name -eq 'Hashtable') {
+                            $iNested = $($inputEntries.Values)[$i]
+                        # Check if entry is nested array
+                        } elseif ((($entryInvoke = $(Invoke-Expression -Command $($inputEntries.Values)[$i])).GetType().BaseType).Name -eq 'Array') {
+                            $iNested = $entryInvoke
+                        # Otherwise return empty string
+                        } else {
+                            $iNested = ""
+                        }
+                    }
+
                     $script:menuEntries += New-Object PSObject -Property @{
                         Command = $($inputEntries.Values)[$i]
                         Name = $($inputEntries.Keys)[$i]
                         Selected = $false
+                        Nested = $iNested
                     }; $i++
                 }
             }
@@ -326,10 +342,9 @@ function Write-Menu {
                 }
 
 
-            # Confirm selection
-            'Enter' {
-                Clear-Host
-
+                # Confirm selection
+                'Enter' {
+                    Clear-Host
                     switch ($entrySelected) {
                         # Check if -MultiSelect has been defined
                         { $MultiSelect } {
@@ -342,17 +357,11 @@ function Write-Menu {
                                 } elseif ($_.Selected) { return $_.Name }
                             }; $inputLoop = $false; break
                         }
-                        # Check if -IgnoreNested has been defined, otherwise check if entry is nested menu
-                        { ($_.Command -notlike $null) -and (-not $IgnoreNested) } {
-                            if ($_.Command.GetType().Name -eq 'Hashtable') { # Hashtable
-                                $menuNested.$Title = $inputEntries
-                                $Title = $_.Name; $lineSelected = 0
-                                Get-Menu $($_.Command); Get-Page; $inputLoop = $false; break
-                            } elseif ((($entryInvoke = $(Invoke-Expression -Command $_.Command)).GetType().BaseType).Name -eq 'Array') { # Array
-                                $menuNested.$Title = $inputEntries
-                                $Title = $_.Name; $lineSelected = 0
-                                Get-Menu $entryInvoke; Get-Page; $inputLoop = $false; break
-                            }
+                        # Check if entry is nested menu
+                        { $entrySelected.Nested -notlike $null } {
+                            $menuNested.$Title = $inputEntries
+                            $Title = $_.Name; $lineSelected = 0
+                            Get-Menu $($_.Nested); Get-Page; $inputLoop = $false; break
                         }
                         # Entry has command associated with it, invoke it
                         { $_.Command -notlike $null } { Invoke-Expression -Command $_.Command; $menuLoop = $false; $inputLoop = $false; break }
