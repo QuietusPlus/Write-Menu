@@ -438,7 +438,7 @@ function Write-Menu {
                             $menuLoop = $false # Exit menu
                             $menuEntries | ForEach-Object {
                                 # Entry contains command, invoke it
-                                if (($_.Selected) -and ($_.Command -notlike $null)) {
+                                if (($_.Selected) -and ($_.Command -notlike $null) -and ($_.Command.GetType().Name -ne 'Hashtable')) {
                                     Invoke-Expression -Command $_.Command
                                 # Return name, entry does not contain command
                                 } elseif ($_.Selected) { return $_.Name }
