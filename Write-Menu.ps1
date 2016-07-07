@@ -285,9 +285,8 @@ function Write-Menu {
 
             # Invert colours if selected + Write entry + Reset colours + New line
             if ($lineHighlight) { Set-ColorInverted -Force }
-            [System.Console]::Write("`r  " + $pageEntryCheck + $menuEntries[($pageEntryFirst + $lineCurrent)].Name + '  ')
+            [System.Console]::Write("`r  " + $pageEntryCheck + $menuEntries[($pageEntryFirst + $lineCurrent)].Name + "  `n")
             if ($lineHighlight) { Set-ColorInverted -Force }
-            [System.Console]::WriteLine('')
         }
 
         # Write page indicator + Define selected entry
