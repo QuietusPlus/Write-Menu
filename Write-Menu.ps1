@@ -222,6 +222,10 @@ function Write-Menu {
             $script:menuEntries = $menuEntries | Sort-Object -Property Name
         }
 
+        # Get longest string
+        $script:pageWidth = ($menuEntries.Name | Measure-Object -Maximum -Property Length).Maximum
+        if ($MultiSelect) { $script:pageWidth += 4 }
+
         # Set current page + get total pages + sort entries
         $script:pageCurrent = 0
         $script:pageTotal = [math]::Ceiling((($menuEntryTotal - $pageSize) / $pageSize))
@@ -230,10 +234,6 @@ function Write-Menu {
     function Get-Page {
         # Clear console
         Clear-Host
-
-        # Get longest string
-        $script:pageWidth = ($menuEntries.Name | Measure-Object -Maximum -Property Length).Maximum
-        if ($MultiSelect) { $script:pageWidth += 4 }
 
         # Write title
         [System.Console]::WriteLine("$menuTitle")
@@ -307,8 +307,11 @@ function Write-Menu {
             if ($lineHighlight) { Set-ColorInverted -Force }
         }
 
-        # Write page indicator + Define selected entry
-        [System.Console]::WriteLine("`n Page $($pageCurrent + 1) / $($pageTotal + 1)`n")
+        # Write page indicator
+        if ($pageCurrent -ne 0) { $pageIndicator = ' <' } else { $pageIndicator = '  ' }
+        $pageIndicator = $pageIndicator.PadRight($pageWidth / 3) + (" Page $($pageCurrent + 1) ")
+        if ($pageCurrent -ne $pageTotal) { $pageIndicator += ('> ').PadLeft($pageWidth / 3) }
+        [System.Console]::WriteLine("`n $pageIndicator `n")
 
         <#
             User Input
