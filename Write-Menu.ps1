@@ -161,13 +161,15 @@ function Write-Menu {
     #>
 
     function Get-Menu($script:inputEntries) {
-        # Set title if provided, adjust menu height accordingly
+        # Check if -Title has been provided, if so set window title, otherwise set default.
         if ($Title -notlike $null) {
             $host.UI.RawUI.WindowTitle = $Title
             $script:menuTitle = "$Title"
         } else {
             $script:menuTitle = 'Menu'
         }
+
+        # Set menu height
         $script:pageSize = ($host.UI.RawUI.WindowSize.Height - 4)
 
         # Get entries type
@@ -270,12 +272,14 @@ function Write-Menu {
         Initialisation
     #>
 
-    # Check dependencies
-    if ($Entries -like $null) { # Entries is defined
+    # Check if entries has been passed
+    if ($Entries -like $null) {
         Write-Error "Missing -Entries parameter!"
         return
     }
-    if ($host.Name -ne 'ConsoleHost') { # Host is console
+
+    # Check if host is console
+    if ($host.Name -ne 'ConsoleHost') {
         Write-Error "[$($host.Name)] Cannot run inside host, please use a console window instead!"
         return
     }
@@ -320,10 +324,13 @@ function Write-Menu {
                 $pageEntry = $pageEntry.PadRight($pageWidth) + '  '
             }
 
-            # Invert colours if selected + Write entry + Reset colours + New line
+            # Write new line and add a space without inverted colours
             [System.Console]::Write("`r ")
+            # Invert colours if selected
             if ($lineHighlight) { Set-ColorInverted -Force }
+            # Write page entry
             [System.Console]::Write("  $pageEntry`n")
+            # Restore colours if selected
             if ($lineHighlight) { Set-ColorInverted -Force }
         }
 
@@ -353,10 +360,10 @@ function Write-Menu {
 
                 # Next entry
                 'DownArrow' {
-                    if ($lineSelected -lt ($pageEntryTotal - 1)) {
+                    if ($lineSelected -lt ($pageEntryTotal - 1)) { # Check if entry isn't last on page
                         $script:lineSelected++
                         $inputLoop = $false
-                    } elseif ($pageCurrent -ne $pageTotal) {
+                    } elseif ($pageCurrent -ne $pageTotal) { # Switch if not on last page
                         $pageCurrent++
                         Get-Page
                         $inputLoop = $false
@@ -365,10 +372,10 @@ function Write-Menu {
 
                 # Previous entry
                 'UpArrow' {
-                    if ($lineSelected -gt 0) {
+                    if ($lineSelected -gt 0) { # Check if entry isn't first on page
                         $script:lineSelected--
                         $inputLoop = $false
-                    } elseif ($pageCurrent -ne 0) {
+                    } elseif ($pageCurrent -ne 0) { # Switch if not on first page
                         $pageCurrent--
                         Get-Page
                         $script:lineSelected = ($pageEntryTotal - 1)
@@ -378,10 +385,10 @@ function Write-Menu {
 
                 # Select top entry
                 'Home' {
-                    if ($lineSelected -ne 0) {
+                    if ($lineSelected -ne 0) { # Check if top entry isn't already selected
                         $script:lineSelected = 0
                         $inputLoop = $false
-                    } elseif ($pageCurrent -ne 0) {
+                    } elseif ($pageCurrent -ne 0) { # Switch if not on first page
                         $pageCurrent--
                         Get-Page
                         $script:lineSelected = ($pageEntryTotal - 1)
@@ -391,10 +398,10 @@ function Write-Menu {
 
                 # Select bottom entry
                 'End' {
-                    if ($lineSelected -ne ($pageEntryTotal - 1)) {
+                    if ($lineSelected -ne ($pageEntryTotal - 1)) { # Check if bottom entry isn't already selected
                         $script:lineSelected = ($pageEntryTotal - 1)
                         $inputLoop = $false
-                    } elseif ($pageCurrent -ne $pageTotal) {
+                    } elseif ($pageCurrent -ne $pageTotal) { # Switch if not on last page
                         $pageCurrent++
                         Get-Page
                         $inputLoop = $false
@@ -403,7 +410,7 @@ function Write-Menu {
 
                 # Next page
                 { $_ -in 'RightArrow','PageDown' } {
-                    if ($pageCurrent -ne $pageTotal) {
+                    if ($pageCurrent -ne $pageTotal) { # Check if already on last page
                         $pageCurrent++
                         Get-Page
                         $inputLoop = $false
@@ -411,7 +418,7 @@ function Write-Menu {
                 }
 
                 # Previous page
-                { $_ -in 'LeftArrow','PageUp' } {
+                { $_ -in 'LeftArrow','PageUp' } { # Check if already on first page
                     if ($pageCurrent -ne 0) {
                         $pageCurrent--
                         Get-Page
@@ -419,7 +426,7 @@ function Write-Menu {
                     }; break
                 }
 
-                # Check selection if -MultiSelect
+                # Select/check entry if -MultiSelect is enabled
                 'Spacebar' {
                     if ($MultiSelect) {
                         switch ($entrySelected.Selected) {
