@@ -342,6 +342,10 @@ function Write-Menu {
                     if ($lineSelected -lt ($pageEntryTotal - 1)) {
                         $script:lineSelected++
                         $inputLoop = $false
+                    } elseif ($pageCurrent -ne $pageTotal) {
+                        $pageCurrent++
+                        Get-Page
+                        $inputLoop = $false
                     }; break
                 }
 
@@ -349,6 +353,11 @@ function Write-Menu {
                 'UpArrow' {
                     if ($lineSelected -gt 0) {
                         $script:lineSelected--
+                        $inputLoop = $false
+                    } elseif ($pageCurrent -ne 0) {
+                        $pageCurrent--
+                        Get-Page
+                        $script:lineSelected = ($pageEntryTotal - 1)
                         $inputLoop = $false
                     }; break
                 }
@@ -358,6 +367,11 @@ function Write-Menu {
                     if ($lineSelected -ne 0) {
                         $script:lineSelected = 0
                         $inputLoop = $false
+                    } elseif ($pageCurrent -ne 0) {
+                        $pageCurrent--
+                        Get-Page
+                        $script:lineSelected = ($pageEntryTotal - 1)
+                        $inputLoop = $false
                     }; break
                 }
 
@@ -365,6 +379,10 @@ function Write-Menu {
                 'End' {
                     if ($lineSelected -ne ($pageEntryTotal - 1)) {
                         $script:lineSelected = ($pageEntryTotal - 1)
+                        $inputLoop = $false
+                    } elseif ($pageCurrent -ne $pageTotal) {
+                        $pageCurrent++
+                        Get-Page
                         $inputLoop = $false
                     }; break
                 }
