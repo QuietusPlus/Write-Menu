@@ -231,6 +231,10 @@ function Write-Menu {
         # Clear console
         Clear-Host
 
+        # Get longest string
+        $script:pageWidth = ($menuEntries.Name | Measure-Object -Maximum -Property Length).Maximum
+        if ($MultiSelect) { $script:pageWidth += 4 }
+
         # Write title
         [System.Console]::WriteLine("$menuTitle")
 
@@ -276,6 +280,7 @@ function Write-Menu {
 
         # Loop through page entries
         for ($lineCurrent = 0; $lineCurrent -le ($pageEntryTotal - 1); $lineCurrent++) {
+
             # Check if entry should be highlighted
             $lineHighlight = ($lineCurrent -eq $lineSelected)
 
@@ -289,9 +294,16 @@ function Write-Menu {
                 $pageEntry = '[ ] ' + $pageEntry
             }
 
+            # Full width highlight + Nested menu indicator
+            if ($menuEntries[($pageEntryFirst + $lineCurrent)].Nested -notlike $null) {
+                $pageEntry = $pageEntry.PadRight($pageWidth) + ' > '
+            } else {
+                $pageEntry = $pageEntry.PadRight($pageWidth) + '   '
+            }
+
             # Invert colours if selected + Write entry + Reset colours + New line
             if ($lineHighlight) { Set-ColorInverted -Force }
-            [System.Console]::Write("`r  " + $pageEntry + "  `n")
+            [System.Console]::Write("`r  " + $pageEntry + "`n")
             if ($lineHighlight) { Set-ColorInverted -Force }
         }
 
