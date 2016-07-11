@@ -445,7 +445,9 @@ function Write-Menu {
                         switch ($entrySelected.Selected) {
                             $true { $entrySelected.Selected = $false }
                             $false { $entrySelected.Selected = $true }
-                        }; $inputLoop = $false
+                        }
+                        Update-Entry ($lineSelected)
+                        $inputLoop = $false
                     }; break
                 }
 
