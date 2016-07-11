@@ -284,6 +284,9 @@ function Write-Menu {
         return
     }
 
+    # Hide cursor
+    [System.Console]::CursorVisible = $false
+
     # Get menu and page
     Get-Menu $Entries
     Get-Page
