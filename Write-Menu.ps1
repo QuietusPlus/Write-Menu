@@ -22,31 +22,6 @@
     SOFTWARE.
 #>
 
-function Set-ColorInverted {
-    [CmdletBinding(SupportsShouldProcess = $true)]
-
-    param(
-        [Parameter()]
-        [switch]$Force
-    )
-
-    begin {
-        $PSBoundParameters.Remove('Force') | Out-Null
-        $PSBoundParameters.Confirm = $false
-    }
-
-    process {
-        if ($Force -or $PSCmdlet.ShouldProcess('Invert foreground and background color', $host)) {
-            # Get current colours
-            $colorForeground = [System.Console]::ForegroundColor
-            $colorBackground = [System.Console]::BackgroundColor
-            # Invert colours
-            [System.Console]::ForegroundColor = $colorBackground
-            [System.Console]::BackgroundColor = $colorForeground
-        }
-    }
-}
-
 function Write-Menu {
     <#
         .NOTES
@@ -160,7 +135,20 @@ function Write-Menu {
         Functions
     #>
 
-    function Get-Menu($script:inputEntries) {
+    function Set-Color ([switch]$Inverted) {
+        switch ($Inverted) {
+            $true {
+                [System.Console]::ForegroundColor = $colorBackground
+                [System.Console]::BackgroundColor = $colorForeground
+            }
+            Default {
+                [System.Console]::ForegroundColor = $colorForeground
+                [System.Console]::BackgroundColor = $colorBackground
+            }
+        }
+    }
+
+    function Get-Menu ($script:inputEntries) {
         # Check if -Title has been provided, if so set window title, otherwise set default.
         if ($Title -notlike $null) {
             $host.UI.RawUI.WindowTitle = $Title
@@ -247,7 +235,7 @@ function Write-Menu {
         }
 
         # Calculate padding between title and page indicator
-        $menuHeaderPadding = [System.Math]::Ceiling($pageWidth - $menuTitle.Length + 2)
+        $menuHeaderPadding = [System.Math]::Ceiling($pageWidth - $menuTitle.Length + 4)
 
         # Write header
         [System.Console]::WriteLine("`n$("{0,0}{1,$menuHeaderPadding}" -f "  $menuTitle", "$pageNumber")`n")
@@ -263,9 +251,59 @@ function Write-Menu {
         }
 
         # Set position within console
-        $script:lineCurrent = 0
         $script:lineSelected = 0
         $script:lineTop = [System.Console]::CursorTop
+
+        # Loop through page entries
+        for ($i = 0; $i -le ($pageEntryTotal - 1); $i++) {
+            Write-Entry $i
+        }
+    }
+
+    function Write-Entry ([int16]$Index, [switch]$Update) {
+        # Check if entry should be highlighted
+        if ($Update) {
+            $lineHighlight = $false
+        } else {
+            $lineHighlight = ($Index -eq $lineSelected)
+        }
+
+        # Page entry
+        $script:pageEntry = $menuEntries[($pageEntryFirst + $Index)].Name
+
+        # Prefix checkbox if -MultiSelect is enabled
+        if ($MultiSelect -and ($menuEntries[($pageEntryFirst + $Index)].Selected)) {
+            $script:pageEntry = "[X] $pageEntry"
+        } elseif ($MultiSelect) {
+            $script:pageEntry = "[ ] $pageEntry"
+        }
+
+        # Full width highlight + Nested menu indicator
+        if ($menuEntries[($pageEntryFirst + $Index)].Nested -notlike $null) {
+            $script:pageEntry = $pageEntry.PadRight($pageWidth) + ' >  '
+        } else {
+            $script:pageEntry = $pageEntry.PadRight($pageWidth + 2) + '  '
+        }
+
+        # Write new line and add a space without inverted colours
+        [System.Console]::Write("`r ")
+        # Invert colours if selected
+        if ($lineHighlight) { Set-Color -Inverted }
+        # Write page entry
+        [System.Console]::Write("  $pageEntry`n")
+        # Restore colours if selected
+        if ($lineHighlight) { Set-Color }
+    }
+
+    function Update-Entry ([int16]$Index) {
+        # Reset current entry
+        [System.Console]::CursorTop = ($lineTop + $lineSelected)
+        Write-Entry $lineSelected -Update
+
+        # Write updated entry
+        $script:lineSelected = $Index
+        [System.Console]::CursorTop = ($lineTop + $Index)
+        Write-Entry $lineSelected
     }
 
     <#
@@ -287,6 +325,10 @@ function Write-Menu {
     # Hide cursor
     [System.Console]::CursorVisible = $false
 
+    # Save initial colours
+    $script:colorForeground = [System.Console]::ForegroundColor
+    $script:colorBackground = [System.Console]::BackgroundColor
+
     # Get menu and page
     Get-Menu $Entries
     Get-Page
@@ -303,39 +345,6 @@ function Write-Menu {
 
         # Define selected entry
         $entrySelected = $menuEntries[($pageEntryFirst + $lineSelected)]
-
-        # Loop through page entries
-        for ($lineCurrent = 0; $lineCurrent -le ($pageEntryTotal - 1); $lineCurrent++) {
-
-            # Check if entry should be highlighted
-            $lineHighlight = ($lineCurrent -eq $lineSelected)
-
-            # Page entry
-            $pageEntry = $menuEntries[($pageEntryFirst + $lineCurrent)].Name
-
-            # Prefix checkbox if -MultiSelect is enabled
-            if ($MultiSelect -and ($menuEntries[($pageEntryFirst + $lineCurrent)].Selected)) {
-                $pageEntry = "[X] $pageEntry"
-            } elseif ($MultiSelect) {
-                $pageEntry = "[ ] $pageEntry"
-            }
-
-            # Full width highlight + Nested menu indicator
-            if ($menuEntries[($pageEntryFirst + $lineCurrent)].Nested -notlike $null) {
-                $pageEntry = $pageEntry.PadRight($pageWidth) + ' >  '
-            } else {
-                $pageEntry = $pageEntry.PadRight($pageWidth) + '  '
-            }
-
-            # Write new line and add a space without inverted colours
-            [System.Console]::Write("`r ")
-            # Invert colours if selected
-            if ($lineHighlight) { Set-ColorInverted -Force }
-            # Write page entry
-            [System.Console]::Write("  $pageEntry`n")
-            # Restore colours if selected
-            if ($lineHighlight) { Set-ColorInverted -Force }
-        }
 
         <#
             User Input
@@ -364,7 +373,7 @@ function Write-Menu {
                 # Next entry
                 'DownArrow' {
                     if ($lineSelected -lt ($pageEntryTotal - 1)) { # Check if entry isn't last on page
-                        $script:lineSelected++
+                        Update-Entry ($lineSelected + 1)
                         $inputLoop = $false
                     } elseif ($pageCurrent -ne $pageTotal) { # Switch if not on last page
                         $pageCurrent++
@@ -376,12 +385,12 @@ function Write-Menu {
                 # Previous entry
                 'UpArrow' {
                     if ($lineSelected -gt 0) { # Check if entry isn't first on page
-                        $script:lineSelected--
+                        Update-Entry ($lineSelected - 1)
                         $inputLoop = $false
                     } elseif ($pageCurrent -ne 0) { # Switch if not on first page
                         $pageCurrent--
                         Get-Page
-                        $script:lineSelected = ($pageEntryTotal - 1)
+                        Update-Entry ($pageEntryTotal - 1)
                         $inputLoop = $false
                     }; break
                 }
@@ -389,12 +398,12 @@ function Write-Menu {
                 # Select top entry
                 'Home' {
                     if ($lineSelected -ne 0) { # Check if top entry isn't already selected
-                        $script:lineSelected = 0
+                        Update-Entry 0
                         $inputLoop = $false
                     } elseif ($pageCurrent -ne 0) { # Switch if not on first page
                         $pageCurrent--
                         Get-Page
-                        $script:lineSelected = ($pageEntryTotal - 1)
+                        Update-Entry ($pageEntryTotal - 1)
                         $inputLoop = $false
                     }; break
                 }
@@ -402,7 +411,7 @@ function Write-Menu {
                 # Select bottom entry
                 'End' {
                     if ($lineSelected -ne ($pageEntryTotal - 1)) { # Check if bottom entry isn't already selected
-                        $script:lineSelected = ($pageEntryTotal - 1)
+                        Update-Entry ($pageEntryTotal - 1)
                         $inputLoop = $false
                     } elseif ($pageCurrent -ne $pageTotal) { # Switch if not on last page
                         $pageCurrent++
