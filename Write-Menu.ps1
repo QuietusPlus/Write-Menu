@@ -149,6 +149,9 @@ function Write-Menu {
     }
 
     function Get-Menu ($script:inputEntries) {
+        # Clear console
+        Clear-Host
+
         # Check if -Title has been provided, if so set window title, otherwise set default.
         if ($Title -notlike $null) {
             $host.UI.RawUI.WindowTitle = $Title
@@ -158,7 +161,7 @@ function Write-Menu {
         }
 
         # Set menu height
-        $script:pageSize = ($host.UI.RawUI.WindowSize.Height - 4)
+        $script:pageSize = ($host.UI.RawUI.WindowSize.Height - 5)
 
         # Get entries type
         $inputType = ($inputEntries | ForEach-Object {
@@ -212,7 +215,9 @@ function Write-Menu {
         }
 
         # Get longest entry
-        $script:pageWidth = ($menuEntries.Name | Measure-Object -Maximum -Property Length).Maximum
+        $script:entryWidth = ($menuEntries.Name | Measure-Object -Maximum -Property Length).Maximum
+        $script:pageWidth = $entryPrefix.Length + $entryPadding + $entryWidth + $entryPadding + $entrySuffix.Length
+
         # Widen if -MultiSelect is enabled
         if ($MultiSelect) { $script:pageWidth += 4 }
         # Set minimum page width
@@ -221,24 +226,38 @@ function Write-Menu {
         # Set current + total pages
         $script:pageCurrent = 0
         $script:pageTotal = [math]::Ceiling((($menuEntryTotal - $pageSize) / $pageSize))
+
+
+        # Insert new line
+        [System.Console]::WriteLine("")
+
+        # Save title line location + write title
+        $script:lineTitle = [System.Console]::CursorTop
+        [System.Console]::WriteLine("  $menuTitle" + "`n")
+
+        # Save first entry line location
+        $script:lineTop = [System.Console]::CursorTop
+    }
+
+    function Update-PageIndicator {
+        $script:pageNumber = "$($pageCurrent + 1)/$($pageTotal + 1)"
+
+        [System.Console]::CursorTop = $lineTitle
+        [System.Console]::Write("`r")
+        [System.Console]::CursorLeft = ($pageWidth - $pageNumber.Length)
+        [System.Console]::WriteLine("$pageNumber")
     }
 
     function Get-Page {
-        # Clear console
-        Clear-Host
-
-        # Get page information used in header
         if ($pageTotal -ne 0) {
-            $pageNumber = "$($pageCurrent + 1)/$($pageTotal + 1)"
-        } else {
-            $pageNumber = ' '
+            Update-PageIndicator
         }
 
-        # Calculate padding between title and page indicator
-        $menuHeaderPadding = [System.Math]::Ceiling($pageWidth - $menuTitle.Length + 4)
-
-        # Write header
-        [System.Console]::WriteLine("`n$("{0,0}{1,$menuHeaderPadding}" -f "  $menuTitle", "$pageNumber")`n")
+        # Clear entries
+        for ($i = 0; $i -le $pageSize; $i++) {
+            [System.Console]::WriteLine("".PadRight($pageWidth) + " ")
+        }
+        [System.Console]::CursorTop = $lineTop
 
         # Get index of first entry
         $script:pageEntryFirst = ($pageSize * $pageCurrent)
@@ -252,7 +271,6 @@ function Write-Menu {
 
         # Set position within console
         $script:lineSelected = 0
-        $script:lineTop = [System.Console]::CursorTop
 
         # Loop through page entries
         for ($i = 0; $i -le ($pageEntryTotal - 1); $i++) {
@@ -280,19 +298,21 @@ function Write-Menu {
 
         # Full width highlight + Nested menu indicator
         if ($menuEntries[($pageEntryFirst + $Index)].Nested -notlike $null) {
-            $script:pageEntry = $pageEntry.PadRight($pageWidth) + ' >  '
+            $script:pageEntry = $pageEntry.PadRight($entryWidth) + $entryNested
         } else {
-            $script:pageEntry = $pageEntry.PadRight($pageWidth + 2) + '  '
+            $script:pageEntry = $pageEntry.PadRight($entryWidth + $entryNested.Length)
         }
 
         # Write new line and add a space without inverted colours
-        [System.Console]::Write("`r ")
+        [System.Console]::Write("`r" + $entryPrefix)
         # Invert colours if selected
         if ($lineHighlight) { Set-Color -Inverted }
         # Write page entry
-        [System.Console]::Write("  $pageEntry`n")
+        [System.Console]::Write("".PadLeft($entryPadding) + $pageEntry + "".PadRight($entryPadding))
         # Restore colours if selected
         if ($lineHighlight) { Set-Color }
+        # Entry suffix
+        [System.Console]::Write($entrySuffix + "`n")
     }
 
     function Update-Entry ([int16]$Index) {
@@ -304,6 +324,9 @@ function Write-Menu {
         $script:lineSelected = $Index
         [System.Console]::CursorTop = ($lineTop + $Index)
         Write-Entry $lineSelected
+
+        # Move cursor to first entry on page
+        [System.Console]::CursorTop = $lineTop
     }
 
     <#
@@ -322,6 +345,12 @@ function Write-Menu {
         return
     }
 
+    # Entry prefix and suffix
+    $script:entryPrefix = ' '
+    $script:entryPadding = 2
+    $script:entrySuffix = ' '
+    $script:entryNested = ' >'
+
     # Hide cursor
     [System.Console]::CursorVisible = $false
 
@@ -329,175 +358,162 @@ function Write-Menu {
     $script:colorForeground = [System.Console]::ForegroundColor
     $script:colorBackground = [System.Console]::BackgroundColor
 
-    # Get menu and page
+    # Get menu
     Get-Menu $Entries
+
+    # Get page
     Get-Page
 
     # Declare hashtable for nested entries
     $menuNested = [ordered]@{}
 
-    # Loop through menu
-    do { $menuLoop = $true; [System.Console]::CursorTop = $lineTop
+    <#
+        User Input
+    #>
 
-        <#
-            Write page
-        #>
+    # Loop through user input until valid key has been pressed
+    do { $inputLoop = $true
+        [System.Console]::CursorTop = $lineTop
+        [System.Console]::Write("`r")
+
+        # Get pressed key
+        $menuInput = [System.Console]::ReadKey($false)
 
         # Define selected entry
         $entrySelected = $menuEntries[($pageEntryFirst + $lineSelected)]
 
-        <#
-            User Input
-        #>
-
-        # Loop through user input until valid key has been pressed
-        do { $inputLoop = $true; $menuInput = [System.Console]::ReadKey($true)
-            switch ($menuInput.Key) {
-                # Exit / Return
-                { $_ -in 'Escape', 'Backspace' } {
-                    # Return to parent if current menu is nested
-                    if ($menuNested.Count -ne 0) {
-                        $pageCurrent = 0
-                        $Title = $($menuNested.GetEnumerator())[$menuNested.Count - 1].Name
-                        Get-Menu $($menuNested.GetEnumerator())[$menuNested.Count - 1].Value
-                        Get-Page
-                        $menuNested.RemoveAt($menuNested.Count - 1) | Out-Null
-                    # Otherwise exit and return $null
-                    } else {
-                        Clear-Host
-                        $menuLoop = $false
-                        [System.Console]::CursorVisible = $true
-                        return $null
-                    }; $inputLoop = $false; break
-                }
-
-                # Next entry
-                'DownArrow' {
-                    if ($lineSelected -lt ($pageEntryTotal - 1)) { # Check if entry isn't last on page
-                        Update-Entry ($lineSelected + 1)
-                        $inputLoop = $false
-                    } elseif ($pageCurrent -ne $pageTotal) { # Switch if not on last page
-                        $pageCurrent++
-                        Get-Page
-                        $inputLoop = $false
-                    }; break
-                }
-
-                # Previous entry
-                'UpArrow' {
-                    if ($lineSelected -gt 0) { # Check if entry isn't first on page
-                        Update-Entry ($lineSelected - 1)
-                        $inputLoop = $false
-                    } elseif ($pageCurrent -ne 0) { # Switch if not on first page
-                        $pageCurrent--
-                        Get-Page
-                        Update-Entry ($pageEntryTotal - 1)
-                        $inputLoop = $false
-                    }; break
-                }
-
-                # Select top entry
-                'Home' {
-                    if ($lineSelected -ne 0) { # Check if top entry isn't already selected
-                        Update-Entry 0
-                        $inputLoop = $false
-                    } elseif ($pageCurrent -ne 0) { # Switch if not on first page
-                        $pageCurrent--
-                        Get-Page
-                        Update-Entry ($pageEntryTotal - 1)
-                        $inputLoop = $false
-                    }; break
-                }
-
-                # Select bottom entry
-                'End' {
-                    if ($lineSelected -ne ($pageEntryTotal - 1)) { # Check if bottom entry isn't already selected
-                        Update-Entry ($pageEntryTotal - 1)
-                        $inputLoop = $false
-                    } elseif ($pageCurrent -ne $pageTotal) { # Switch if not on last page
-                        $pageCurrent++
-                        Get-Page
-                        $inputLoop = $false
-                    }; break
-                }
-
-                # Next page
-                { $_ -in 'RightArrow','PageDown' } {
-                    if ($pageCurrent -ne $pageTotal) { # Check if already on last page
-                        $pageCurrent++
-                        Get-Page
-                        $inputLoop = $false
-                    }; break
-                }
-
-                # Previous page
-                { $_ -in 'LeftArrow','PageUp' } { # Check if already on first page
-                    if ($pageCurrent -ne 0) {
-                        $pageCurrent--
-                        Get-Page
-                        $inputLoop = $false
-                    }; break
-                }
-
-                # Select/check entry if -MultiSelect is enabled
-                'Spacebar' {
-                    if ($MultiSelect) {
-                        switch ($entrySelected.Selected) {
-                            $true { $entrySelected.Selected = $false }
-                            $false { $entrySelected.Selected = $true }
-                        }
-                        Update-Entry ($lineSelected)
-                        $inputLoop = $false
-                    }; break
-                }
-
-                # Confirm selection
-                'Enter' {
+        # Check if key has function attached to it
+        switch ($menuInput.Key) {
+            # Exit / Return
+            { $_ -in 'Escape', 'Backspace' } {
+                # Return to parent if current menu is nested
+                if ($menuNested.Count -ne 0) {
+                    $pageCurrent = 0
+                    $Title = $($menuNested.GetEnumerator())[$menuNested.Count - 1].Name
+                    Get-Menu $($menuNested.GetEnumerator())[$menuNested.Count - 1].Value
+                    Get-Page
+                    $menuNested.RemoveAt($menuNested.Count - 1) | Out-Null
+                # Otherwise exit and return $null
+                } else {
                     Clear-Host
-                    switch ($entrySelected) {
-                        # Check if -MultiSelect has been defined
-                        { $MultiSelect } {
-                            $menuLoop = $false # Exit menu
-                            $menuEntries | ForEach-Object {
-                                # Entry contains command, invoke it
-                                if (($_.Selected) -and ($_.Command -notlike $null) -and ($_.Command.GetType().Name -ne 'Hashtable')) {
-                                    Invoke-Expression -Command $_.Command
-                                # Return name, entry does not contain command
-                                } elseif ($_.Selected) { return $_.Name }
-                            }
-                            $inputLoop = $false
-                            [System.Console]::CursorVisible = $true
-                            break
-                        }
+                    $inputLoop = $false
+                    [System.Console]::CursorVisible = $true
+                    return $null
+                }; break
+            }
 
-                        # Check if entry is nested menu
-                        { $entrySelected.Nested -notlike $null } {
-                            $menuNested.$Title = $inputEntries
-                            $Title = $_.Name
-                            Get-Menu $($_.Nested)
-                            Get-Page
-                            $inputLoop = $false
-                            break
-                        }
+            # Next entry
+            'DownArrow' {
+                if ($lineSelected -lt ($pageEntryTotal - 1)) { # Check if entry isn't last on page
+                    Update-Entry ($lineSelected + 1)
+                } elseif ($pageCurrent -ne $pageTotal) { # Switch if not on last page
+                    $pageCurrent++
+                    Get-Page
+                }; break
+            }
 
-                        # Entry has command associated with it, invoke it
-                        { $_.Command -notlike $null } {
-                            Invoke-Expression -Command $_.Command
-                            $menuLoop = $false
-                            $inputLoop = $false
-                            [System.Console]::CursorVisible = $true
-                            break
-                        }
+            # Previous entry
+            'UpArrow' {
+                if ($lineSelected -gt 0) { # Check if entry isn't first on page
+                    Update-Entry ($lineSelected - 1)
+                } elseif ($pageCurrent -ne 0) { # Switch if not on first page
+                    $pageCurrent--
+                    Get-Page
+                    Update-Entry ($pageEntryTotal - 1)
+                }; break
+            }
 
-                        # Return entry name
-                        Default {
-                            $menuLoop = $false
-                            [System.Console]::CursorVisible = $true
-                            return $_.Name
+            # Select top entry
+            'Home' {
+                if ($lineSelected -ne 0) { # Check if top entry isn't already selected
+                    Update-Entry 0
+                } elseif ($pageCurrent -ne 0) { # Switch if not on first page
+                    $pageCurrent--
+                    Get-Page
+                    Update-Entry ($pageEntryTotal - 1)
+                }; break
+            }
+
+            # Select bottom entry
+            'End' {
+                if ($lineSelected -ne ($pageEntryTotal - 1)) { # Check if bottom entry isn't already selected
+                    Update-Entry ($pageEntryTotal - 1)
+                } elseif ($pageCurrent -ne $pageTotal) { # Switch if not on last page
+                    $pageCurrent++
+                    Get-Page
+                }; break
+            }
+
+            # Next page
+            { $_ -in 'RightArrow','PageDown' } {
+                if ($pageCurrent -lt $pageTotal) { # Check if already on last page
+                    $pageCurrent++
+                    Get-Page
+                }; break
+            }
+
+            # Previous page
+            { $_ -in 'LeftArrow','PageUp' } { # Check if already on first page
+                if ($pageCurrent -gt 0) {
+                    $pageCurrent--
+                    Get-Page
+                }; break
+            }
+
+            # Select/check entry if -MultiSelect is enabled
+            'Spacebar' {
+                if ($MultiSelect) {
+                    switch ($entrySelected.Selected) {
+                        $true { $entrySelected.Selected = $false }
+                        $false { $entrySelected.Selected = $true }
+                    }
+                    Update-Entry ($lineSelected)
+                }; break
+            }
+
+            # Confirm selection
+            'Enter' {
+                Clear-Host
+                switch ($entrySelected) {
+                    # Check if -MultiSelect has been defined
+                    { $MultiSelect } {
+                        $inputLoop = $false # Exit menu
+                        $menuEntries | ForEach-Object {
+                            # Entry contains command, invoke it
+                            if (($_.Selected) -and ($_.Command -notlike $null) -and ($_.Command.GetType().Name -ne 'Hashtable')) {
+                                Invoke-Expression -Command $_.Command
+                            # Return name, entry does not contain command
+                            } elseif ($_.Selected) { return $_.Name }
                         }
+                        [System.Console]::CursorVisible = $true
+                        break
+                    }
+
+                    # Check if entry is nested menu
+                    { $entrySelected.Nested -notlike $null } {
+                        $menuNested.$Title = $inputEntries
+                        $Title = $_.Name
+                        Get-Menu $($_.Nested)
+                        Get-Page
+                        break
+                    }
+
+                    # Entry has command associated with it, invoke it
+                    { $_.Command -notlike $null } {
+                        Invoke-Expression -Command $_.Command
+                        $inputLoop = $false
+                        [System.Console]::CursorVisible = $true
+                        break
+                    }
+
+                    # Return entry name
+                    Default {
+                        $inputLoop = $false
+                        [System.Console]::CursorVisible = $true
+                        return $_.Name
                     }
                 }
             }
-        } while ($inputLoop)
-    } while ($menuLoop)
+        }
+    } while ($inputLoop)
 }
