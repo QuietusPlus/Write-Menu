@@ -366,6 +366,7 @@ function Write-Menu {
                     } else {
                         Clear-Host
                         $menuLoop = $false
+                        [System.Console]::CursorVisible = $true
                         return $null
                     }; $inputLoop = $false; break
                 }
@@ -461,7 +462,10 @@ function Write-Menu {
                                     Invoke-Expression -Command $_.Command
                                 # Return name, entry does not contain command
                                 } elseif ($_.Selected) { return $_.Name }
-                            }; $inputLoop = $false; break
+                            }
+                            $inputLoop = $false
+                            [System.Console]::CursorVisible = $true
+                            break
                         }
 
                         # Check if entry is nested menu
@@ -479,12 +483,14 @@ function Write-Menu {
                             Invoke-Expression -Command $_.Command
                             $menuLoop = $false
                             $inputLoop = $false
+                            [System.Console]::CursorVisible = $true
                             break
                         }
 
                         # Return entry name
                         Default {
                             $menuLoop = $false
+                            [System.Console]::CursorVisible = $true
                             return $_.Name
                         }
                     }
