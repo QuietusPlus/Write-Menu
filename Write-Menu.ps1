@@ -39,6 +39,9 @@ function Write-Menu {
             * Sort entries using the -Sort parameter.
             * -MultiSelect: Use space to check a selected entry, all checked entries will be invoked / returned upon confirmation.
             * Jump to the top / bottom of the page using the "Home" and "End" keys.
+            * "Scrolling" list effect by automatically switching pages when reaching the top/bottom.
+            * Nested menu indicator next to entries.
+            * Remembers parent menus: Opening three levels of nested menus means you have to press "Esc" three times.
 
             Controls             Description
             --------             -----------
@@ -64,9 +67,6 @@ function Write-Menu {
         .PARAMETER MultiSelect
             Use space to check a selected entry, all checked entries will be invoked / returned upon confirmation.
 
-        .PARAMETER IgnoreNested
-            Do not check entries for nested hashtables or arrays.
-
         .EXAMPLE
             PS C:\>$menuReturn = Write-Menu -Title 'Menu Title' -Entries @('Menu Option 1', 'Menu Option 2', 'Menu Option 3', 'Menu Option 4')
 
@@ -90,10 +90,14 @@ function Write-Menu {
             PS C:\>$menuReturn = Write-Menu -Title 'Advanced Menu' -Sort -Entries $menuEntries
 
             $menuEntries = @{
-                'AppxPackages' = '(Get-AppxPackage).Name' # Nested menu using a command
-                'Nested Hashtable' = @{ # Manually defined nested menu
-                    'Custom Entry' = 'Write-Output "Custom Command"' # Command entry
-                    'Variables' = '(Get-Variable).Name' # Nested menu using a command
+                # Entries with "@" infront will be invoked and the results opened as a nested menu
+                'AppxPackages' = '@(Get-AppxPackage).Name'
+                # Nested menu using a manually defined hashtable
+                'Nested Hashtable' = @{
+                    # Another entry that is considered a command
+                    'Custom Entry' = 'Write-Output "Custom Command"'
+                    # Entries without "@" infront will be treated as a regular command
+                    'Variables' = '(Get-Variable).Name'
                 }
             }
 
@@ -125,10 +129,7 @@ function Write-Menu {
         [switch]$Sort,
 
         [Parameter()]
-        [switch]$MultiSelect,
-
-        [Parameter()]
-        [switch]$IgnoreNested
+        [switch]$MultiSelect
     )
 
     <#
@@ -163,49 +164,52 @@ function Write-Menu {
         # Set menu height
         $script:pageSize = ($host.UI.RawUI.WindowSize.Height - 5)
 
-        # Get entries type
-        $inputType = ($inputEntries | ForEach-Object {
-            $_.PSObject.TypeNames[0]
-        } | Select-Object -First 1)
-
         # Convert entries to object
         $script:menuEntries = @()
-        switch ($inputType) {
-            System.String {
+        switch ($inputEntries.GetType().Name) {
+            'Object[]' {
+                # Get total entries
                 $script:menuEntryTotal = $inputEntries.Length
+                # Loop through array
                 foreach ($i in 0..$($menuEntryTotal - 1)) {
-                    $script:menuEntries += New-Object PSObject -Property @{
-                        Command = $null
-                        Name = $($inputEntries)[$i]
-                        Selected = $false
-                        Nested = ""
-                    }; $i++
-                }
-            }
-            System.Collections.Hashtable {
-                $script:menuEntryTotal = $inputEntries.Count
-                foreach ($i in 0..$($menuEntryTotal - 1)) {
-                    # Check for -IgnoreNested and -MultiSelect
-                    if ((-not $IgnoreNested) -and (-not $MultiSelect)) {
-                        # Check if entry is nested hashtable
-                        if ($($inputEntries.Values)[$i].GetType().Name -eq 'Hashtable') {
-                            $iNested = $($inputEntries.Values)[$i]
-                        # Check if entry is nested array
-                        } elseif ((($entryInvoke = $(Invoke-Expression -Command $($inputEntries.Values)[$i])).GetType().BaseType).Name -eq 'Array') {
-                            $iNested = $entryInvoke
-                        # Otherwise return empty string
-                        } else {
-                            $iNested = ""
-                        }
-                    }
                     # Create object
                     $script:menuEntries += New-Object PSObject -Property @{
-                        Command = $($inputEntries.Values)[$i]
-                        Name = $($inputEntries.Keys)[$i]
+                        Command = ''
+                        Name = $($inputEntries)[$i]
                         Selected = $false
-                        Nested = $iNested
+                        onConfirm = 'Name'
                     }; $i++
-                }
+                }; break
+            }
+            'Hashtable' {
+                # Get total entries
+                $script:menuEntryTotal = $inputEntries.Count
+                # Loop through hashtable
+                foreach ($i in 0..$($menuEntryTotal - 1)) {
+                    $tempCommand = $($inputEntries.Values)[$i]
+
+                    # Check if command contains nested menu
+                    if ($tempCommand.GetType().Name -eq 'Hashtable') {
+                        $tempAction = 'Hashtable'
+                    } elseif ($tempCommand.Substring(0,1) -eq '@') {
+                        $tempAction = 'Invoke'
+                    } else {
+                        $tempAction = 'Command'
+                    }
+
+                    # Create object
+                    $script:menuEntries += New-Object PSObject -Property @{
+                        Name = $($inputEntries.Keys)[$i]
+                        Command = $tempCommand
+                        Selected = $false
+                        onConfirm = $tempAction
+                    }; $i++
+                }; break
+            }
+            Default {
+                Write-Error 'Passed -Entries type not supported, please use an array or hashtable.'
+                break
+                return
             }
         }
 
@@ -216,17 +220,16 @@ function Write-Menu {
 
         # Get longest entry
         $script:entryWidth = ($menuEntries.Name | Measure-Object -Maximum -Property Length).Maximum
-        $script:pageWidth = $entryPrefix.Length + $entryPadding + $entryWidth + $entryPadding + $entrySuffix.Length
-
         # Widen if -MultiSelect is enabled
-        if ($MultiSelect) { $script:pageWidth += 4 }
-        # Set minimum page width
-        if ($pageWidth -lt 30) { $script:pageWidth = 30 }
+        if ($MultiSelect) { $script:entryWidth += 4 }
+        # Set minimum entry width
+        if ($entryWidth -lt $cfgWidth) { $script:entryWidth = $cfgWidth }
+        # Set page width
+        $script:pageWidth = $cfgPrefix.Length + $cfgPadding + $entryWidth + $cfgPadding + $cfgSuffix.Length
 
         # Set current + total pages
         $script:pageCurrent = 0
         $script:pageTotal = [math]::Ceiling((($menuEntryTotal - $pageSize) / $pageSize))
-
 
         # Insert new line
         [System.Console]::WriteLine("")
@@ -239,24 +242,17 @@ function Write-Menu {
         $script:lineTop = [System.Console]::CursorTop
     }
 
-    function Update-PageIndicator {
-        $script:pageNumber = "$($pageCurrent + 1)/$($pageTotal + 1)"
-
-        [System.Console]::CursorTop = $lineTitle
-        [System.Console]::Write("`r")
-        [System.Console]::CursorLeft = ($pageWidth - $pageNumber.Length)
-        [System.Console]::WriteLine("$pageNumber")
-    }
-
     function Get-Page {
-        if ($pageTotal -ne 0) {
-            Update-PageIndicator
-        }
+        # Update header if multiple pages
+        if ($pageTotal -ne 0) { Update-Header }
 
         # Clear entries
         for ($i = 0; $i -le $pageSize; $i++) {
-            [System.Console]::WriteLine("".PadRight($pageWidth) + " ")
+            # Overwrite each entry with whitespace
+            [System.Console]::WriteLine("".PadRight($pageWidth) + ' ')
         }
+
+        # Move cursor to first entry
         [System.Console]::CursorTop = $lineTop
 
         # Get index of first entry
@@ -272,7 +268,7 @@ function Write-Menu {
         # Set position within console
         $script:lineSelected = 0
 
-        # Loop through page entries
+        # Write all page entries
         for ($i = 0; $i -le ($pageEntryTotal - 1); $i++) {
             Write-Entry $i
         }
@@ -280,39 +276,38 @@ function Write-Menu {
 
     function Write-Entry ([int16]$Index, [switch]$Update) {
         # Check if entry should be highlighted
-        if ($Update) {
-            $lineHighlight = $false
-        } else {
-            $lineHighlight = ($Index -eq $lineSelected)
+        switch ($Update) {
+            $true { $lineHighlight = $false; break }
+            Default { $lineHighlight = ($Index -eq $lineSelected) }
         }
 
-        # Page entry
-        $script:pageEntry = $menuEntries[($pageEntryFirst + $Index)].Name
+        # Page entry name
+        $pageEntry = $menuEntries[($pageEntryFirst + $Index)].Name
 
         # Prefix checkbox if -MultiSelect is enabled
-        if ($MultiSelect -and ($menuEntries[($pageEntryFirst + $Index)].Selected)) {
-            $script:pageEntry = "[X] $pageEntry"
-        } elseif ($MultiSelect) {
-            $script:pageEntry = "[ ] $pageEntry"
+        if ($MultiSelect) {
+            switch ($menuEntries[($pageEntryFirst + $Index)].Selected) {
+                $true { $pageEntry = "[X] $pageEntry"; break }
+                Default { $pageEntry = "[ ] $pageEntry" }
+            }
         }
 
         # Full width highlight + Nested menu indicator
-        if ($menuEntries[($pageEntryFirst + $Index)].Nested -notlike $null) {
-            $script:pageEntry = $pageEntry.PadRight($entryWidth) + $entryNested
-        } else {
-            $script:pageEntry = $pageEntry.PadRight($entryWidth + $entryNested.Length)
+        switch ($menuEntries[($pageEntryFirst + $Index)].onConfirm -in 'Hashtable', 'Invoke') {
+            $true { $pageEntry = $pageEntry.PadRight($entryWidth) + "$cfgNested"; break }
+            Default { $pageEntry = $pageEntry.PadRight($entryWidth + $cfgNested.Length) }
         }
 
-        # Write new line and add a space without inverted colours
-        [System.Console]::Write("`r" + $entryPrefix)
+        # Write new line and add whitespace without inverted colours
+        [System.Console]::Write("`r" + $cfgPrefix)
         # Invert colours if selected
         if ($lineHighlight) { Set-Color -Inverted }
         # Write page entry
-        [System.Console]::Write("".PadLeft($entryPadding) + $pageEntry + "".PadRight($entryPadding))
+        [System.Console]::Write("".PadLeft($cfgPadding) + $pageEntry + "".PadRight($cfgPadding))
         # Restore colours if selected
         if ($lineHighlight) { Set-Color }
         # Entry suffix
-        [System.Console]::Write($entrySuffix + "`n")
+        [System.Console]::Write($cfgSuffix + "`n")
     }
 
     function Update-Entry ([int16]$Index) {
@@ -329,6 +324,18 @@ function Write-Menu {
         [System.Console]::CursorTop = $lineTop
     }
 
+    function Update-Header {
+        # Set page indicator
+        $script:pageNumber = "$($pageCurrent + 1)/$($pageTotal + 1)"
+
+        # Move cursor to title
+        [System.Console]::CursorTop = $lineTitle
+        # Move cursor to the right
+        [System.Console]::CursorLeft = ($entryWidth + $pageNumber.Length)
+        # Write page indicator
+        [System.Console]::WriteLine("$pageNumber")
+    }
+
     <#
         Initialisation
     #>
@@ -341,15 +348,18 @@ function Write-Menu {
 
     # Check if host is console
     if ($host.Name -ne 'ConsoleHost') {
-        Write-Error "[$($host.Name)] Cannot run inside host, please use a console window instead!"
+        Write-Error "[$($host.Name)] Cannot run inside current host, please use a console window instead!"
         return
     }
 
-    # Entry prefix and suffix
-    $script:entryPrefix = ' '
-    $script:entryPadding = 2
-    $script:entrySuffix = ' '
-    $script:entryNested = ' >'
+    # Entry prefix, suffix and padding
+    $script:cfgPrefix = ' '
+    $script:cfgPadding = 2
+    $script:cfgSuffix = ' '
+    $script:cfgNested = ' >'
+
+    # Minimum page width
+    $script:cfgWidth = 30
 
     # Hide cursor
     [System.Console]::CursorVisible = $false
@@ -373,6 +383,8 @@ function Write-Menu {
 
     # Loop through user input until valid key has been pressed
     do { $inputLoop = $true
+
+        # Move cursor to first entry and beginning of line
         [System.Console]::CursorTop = $lineTop
         [System.Console]::Write("`r")
 
@@ -473,44 +485,60 @@ function Write-Menu {
 
             # Confirm selection
             'Enter' {
-                Clear-Host
-                switch ($entrySelected) {
-                    # Check if -MultiSelect has been defined
-                    { $MultiSelect } {
-                        $inputLoop = $false # Exit menu
-                        $menuEntries | ForEach-Object {
-                            # Entry contains command, invoke it
-                            if (($_.Selected) -and ($_.Command -notlike $null) -and ($_.Command.GetType().Name -ne 'Hashtable')) {
-                                Invoke-Expression -Command $_.Command
-                            # Return name, entry does not contain command
-                            } elseif ($_.Selected) { return $_.Name }
+                # Check if -MultiSelect has been enabled
+                if ($MultiSelect) {
+                    Clear-Host
+                    # Process checked/selected entries
+                    $menuEntries | ForEach-Object {
+                        # Entry contains command, invoke it
+                        if (($_.Selected) -and ($_.Command -notlike $null) -and ($entrySelected.Command.GetType().Name -ne 'Hashtable')) {
+                            Invoke-Expression -Command $_.Command
+                        # Return name, entry does not contain command
+                        } elseif ($_.Selected) {
+                            return $_.Name
                         }
-                        [System.Console]::CursorVisible = $true
-                        break
                     }
+                    # Exit and re-enable cursor
+                    $inputLoop = $false
+                    [System.Console]::CursorVisible = $true
+                    break
+                }
 
-                    # Check if entry is nested menu
-                    { $entrySelected.Nested -notlike $null } {
+                # Use onConfirm to process entry
+                switch ($entrySelected.onConfirm) {
+                    # Return hashtable as nested menu
+                    'Hashtable' {
                         $menuNested.$Title = $inputEntries
-                        $Title = $_.Name
-                        Get-Menu $($_.Nested)
+                        $Title = $entrySelected.Name
+                        Get-Menu $entrySelected.Command
                         Get-Page
                         break
                     }
 
-                    # Entry has command associated with it, invoke it
-                    { $_.Command -notlike $null } {
-                        Invoke-Expression -Command $_.Command
+                    # Invoke attached command and return as nested menu
+                    'Invoke' {
+                        $menuNested.$Title = $inputEntries
+                        $Title = $entrySelected.Name
+                        Get-Menu $(Invoke-Expression -Command $entrySelected.Command.Substring(1))
+                        Get-Page
+                        break
+                    }
+
+                    # Invoke attached command and exit
+                    'Command' {
+                        Clear-Host
+                        Invoke-Expression -Command $entrySelected.Command
                         $inputLoop = $false
                         [System.Console]::CursorVisible = $true
                         break
                     }
 
-                    # Return entry name
-                    Default {
+                    # Return name and exit
+                    'Name' {
+                        Clear-Host
+                        return $entrySelected.Name
                         $inputLoop = $false
                         [System.Console]::CursorVisible = $true
-                        return $_.Name
                     }
                 }
             }
