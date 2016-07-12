@@ -325,13 +325,20 @@ function Write-Menu {
     }
 
     function Update-Header {
-        # Set page indicator
-        $script:pageNumber = "$($pageCurrent + 1)/$($pageTotal + 1)"
+        # Set corrected page numbers
+        $pCurrent = ($pageCurrent + 1)
+        $pTotal = ($pageTotal + 1)
+
+        # Calculate offset
+        $pOffset = ($pTotal.ToString()).Length
+
+        # Build string, use offset and padding to right align current page number
+        $script:pageNumber = "{0,-$pOffset}{1,0}" -f "$("$pCurrent".PadLeft($pOffset))","/$pTotal"
 
         # Move cursor to title
         [System.Console]::CursorTop = $lineTitle
         # Move cursor to the right
-        [System.Console]::CursorLeft = ($entryWidth + $pageNumber.Length)
+        [System.Console]::CursorLeft = ($pageWidth - ($pOffset * 2) - 1)
         # Write page indicator
         [System.Console]::WriteLine("$pageNumber")
     }
