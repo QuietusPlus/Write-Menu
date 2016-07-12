@@ -133,7 +133,43 @@ function Write-Menu {
     )
 
     <#
-        Functions
+        Configuration
+    #>
+
+    # Entry prefix, suffix and padding
+    $script:cfgPrefix = ' '
+    $script:cfgPadding = 2
+    $script:cfgSuffix = ' '
+    $script:cfgNested = ' >'
+
+    # Minimum page width
+    $script:cfgWidth = 30
+
+    # Hide cursor
+    [System.Console]::CursorVisible = $false
+
+    # Save initial colours
+    $script:colorForeground = [System.Console]::ForegroundColor
+    $script:colorBackground = [System.Console]::BackgroundColor
+
+    <#
+        Checks
+    #>
+
+    # Check if entries has been passed
+    if ($Entries -like $null) {
+        Write-Error "Missing -Entries parameter!"
+        return
+    }
+
+    # Check if host is console
+    if ($host.Name -ne 'ConsoleHost') {
+        Write-Error "[$($host.Name)] Cannot run inside current host, please use a console window instead!"
+        return
+    }
+
+    <#
+        Set-Color
     #>
 
     function Set-Color ([switch]$Inverted) {
@@ -148,6 +184,10 @@ function Write-Menu {
             }
         }
     }
+
+    <#
+        Get-Menu
+    #>
 
     function Get-Menu ($script:inputEntries) {
         # Clear console
@@ -242,6 +282,10 @@ function Write-Menu {
         $script:lineTop = [System.Console]::CursorTop
     }
 
+    <#
+        Get-Page
+    #>
+
     function Get-Page {
         # Update header if multiple pages
         if ($pageTotal -ne 0) { Update-Header }
@@ -273,6 +317,10 @@ function Write-Menu {
             Write-Entry $i
         }
     }
+
+    <#
+        Write-Entry
+    #>
 
     function Write-Entry ([int16]$Index, [switch]$Update) {
         # Check if entry should be highlighted
@@ -310,6 +358,10 @@ function Write-Menu {
         [System.Console]::Write($cfgSuffix + "`n")
     }
 
+    <#
+        Update-Entry
+    #>
+
     function Update-Entry ([int16]$Index) {
         # Reset current entry
         [System.Console]::CursorTop = ($lineTop + $lineSelected)
@@ -323,6 +375,10 @@ function Write-Menu {
         # Move cursor to first entry on page
         [System.Console]::CursorTop = $lineTop
     }
+
+    <#
+        Update-Header
+    #>
 
     function Update-Header {
         # Set corrected page numbers
@@ -346,34 +402,6 @@ function Write-Menu {
     <#
         Initialisation
     #>
-
-    # Check if entries has been passed
-    if ($Entries -like $null) {
-        Write-Error "Missing -Entries parameter!"
-        return
-    }
-
-    # Check if host is console
-    if ($host.Name -ne 'ConsoleHost') {
-        Write-Error "[$($host.Name)] Cannot run inside current host, please use a console window instead!"
-        return
-    }
-
-    # Entry prefix, suffix and padding
-    $script:cfgPrefix = ' '
-    $script:cfgPadding = 2
-    $script:cfgSuffix = ' '
-    $script:cfgNested = ' >'
-
-    # Minimum page width
-    $script:cfgWidth = 30
-
-    # Hide cursor
-    [System.Console]::CursorVisible = $false
-
-    # Save initial colours
-    $script:colorForeground = [System.Console]::ForegroundColor
-    $script:colorBackground = [System.Console]::BackgroundColor
 
     # Get menu
     Get-Menu $Entries
