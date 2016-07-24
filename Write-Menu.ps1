@@ -225,8 +225,15 @@ function Write-Menu {
                 # Get total entries
                 $script:menuEntryTotal = $inputEntries.Count
                 # Loop through hashtable
-                foreach ($i in 0..$($menuEntryTotal - 1)) {
-                    $tempCommand = $($inputEntries.Values)[$i]
+                foreach ($i in 0..($menuEntryTotal - 1)) {
+                    # Check if hashtable contains a single entry, copy values directly if true
+                    if ($menuEntryTotal -eq 1) {
+                        $tempName = $($inputEntries.Keys)
+                        $tempCommand = $($inputEntries.Values)
+                    } else {
+                        $tempName = $($inputEntries.Keys)[$i]
+                        $tempCommand = $($inputEntries.Values)[$i]
+                    }
 
                     # Check if command contains nested menu
                     if ($tempCommand.GetType().Name -eq 'Hashtable') {
@@ -239,7 +246,7 @@ function Write-Menu {
 
                     # Create object
                     $script:menuEntries += New-Object PSObject -Property @{
-                        Name = $($inputEntries.Keys)[$i]
+                        Name = $tempName
                         Command = $tempCommand
                         Selected = $false
                         onConfirm = $tempAction
