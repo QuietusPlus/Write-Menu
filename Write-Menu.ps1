@@ -349,8 +349,8 @@ function Write-Menu {
 
         # Full width highlight + Nested menu indicator
         switch ($menuEntries[($pageEntryFirst + $Index)].onConfirm -in 'Hashtable', 'Invoke') {
-            $true { $pageEntry = $pageEntry.PadRight($entryWidth) + "$cfgNested"; break }
-            Default { $pageEntry = $pageEntry.PadRight($entryWidth + $cfgNested.Length) }
+            $true { $pageEntry = "$pageEntry".PadRight($entryWidth) + "$cfgNested"; break }
+            Default { $pageEntry = "$pageEntry".PadRight($entryWidth + $cfgNested.Length) }
         }
 
         # Write new line and add whitespace without inverted colours
