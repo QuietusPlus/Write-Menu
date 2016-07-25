@@ -24,8 +24,6 @@
 
 function Write-Menu {
     <#
-        .NOTES
-            Write-Menu by QuietusPlus (inspired by "Simple Textbased Powershell Menu" [Michael Albert])
 
         .SYNOPSIS
             Outputs a command-line menu which can be navigated using the keyboard.
@@ -55,31 +53,17 @@ function Write-Menu {
             Enter                Confirm selection
             Esc / Backspace      Exit / Previous menu
 
-        .PARAMETER Entries
-            Array / hashtable containing menu entries.
-
-        .PARAMETER Title
-            Title shown at the top of the menu.
-
-        .PARAMETER Sort
-            Sort entries before they are displayed.
-
-        .PARAMETER MultiSelect
-            Use space to check a selected entry, all checked entries will be invoked / returned upon confirmation.
-
         .EXAMPLE
             PS C:\>$menuReturn = Write-Menu -Title 'Menu Title' -Entries @('Menu Option 1', 'Menu Option 2', 'Menu Option 3', 'Menu Option 4')
 
             Output:
 
-             Menu Title
+              Menu Title
 
-              Menu Option 1
-              Menu Option 2
-              Menu Option 3
-              Menu Option 4
-
-             Page 1 / 1
+               Menu Option 1
+               Menu Option 2
+               Menu Option 3
+               Menu Option 4
 
         .EXAMPLE
             PS C:\>$menuReturn = Write-Menu -Title 'AppxPackages' -Entries (Get-AppxPackage).Name -Sort
@@ -87,21 +71,23 @@ function Write-Menu {
             This example uses Write-Menu to sort and list app packages (Windows Store/Modern Apps) that are installed for the current profile.
 
         .EXAMPLE
-            PS C:\>$menuReturn = Write-Menu -Title 'Advanced Menu' -Sort -Entries $menuEntries
-
-            $menuEntries = @{
-                # Entries with "@" infront will be invoked and the results opened as a nested menu
-                'AppxPackages' = '@(Get-AppxPackage).Name'
-                # Nested menu using a manually defined hashtable
-                'Nested Hashtable' = @{
-                    # Another entry that is considered a command
-                    'Custom Entry' = 'Write-Output "Custom Command"'
-                    # Entries without "@" infront will be treated as a regular command
-                    'Variables' = '(Get-Variable).Name'
+            PS C:\>$menuReturn = Write-Menu -Title 'Advanced Menu' -Sort -Entries @{
+                'Command Entry' = '(Get-AppxPackage).Name'
+                'Invoke Entry' = '@(Get-AppxPackage).Name'
+                'Hashtable Entry' = @{
+                    'Array Entry' = "@('Menu Option 1', 'Menu Option 2', 'Menu Option 3', 'Menu Option 4')"
                 }
             }
 
-            This example generates an advanced/nested menu using multiple hashtables and arrays.
+            This example includes all possible entry types:
+
+            Command Entry     Invoke without opening as nested menu (does not contain any prefixes)
+            Invoke Entry      Invoke and open as nested menu (contains the "@" prefix)
+            Hashtable Entry   Opened as a nested menu
+            Array Entry       Opened as a nested menu
+
+        .NOTES
+            Write-Menu by QuietusPlus (inspired by "Simple Textbased Powershell Menu" [Michael Albert])
 
         .LINK
             https://quietusplus.github.io/Write-Menu
@@ -117,17 +103,21 @@ function Write-Menu {
     #>
 
     param (
+        # Array or hashtable containing the menu entries
         [Parameter(ValueFromPipeline = $true)]
-        [Alias('Items')]
+        [Alias('InputObject')]
         $Entries,
 
+        # Title shown at the top of the menu.
         [Parameter(ValueFromPipelineByPropertyName = $true)]
         [Alias('Name')]
         $Title,
 
+        # Sort entries before they are displayed.
         [Parameter()]
         [switch]$Sort,
 
+        # Select multiple menu entries using space, each selected entry will then get invoked (this will disable nested menu's).
         [Parameter()]
         [switch]$MultiSelect
     )

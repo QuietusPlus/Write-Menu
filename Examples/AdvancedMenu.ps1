@@ -2,14 +2,14 @@
     Example: AdvancedMenu
 #>
 
-# Include
 . ..\Write-Menu.ps1
 
 $menuReturn = Write-Menu -Title 'Advanced Menu' -Sort -Entries @{
-    'AppxPackages' = '(Get-AppxPackage).Name' # Nested menu using a command
-    'Nested Hashtable' = @{ # Manually defined nested menu
-        'Custom Entry' = 'Write-Output "Custom Command"' # Command entry
-        'Variables' = '(Get-Variable).Name' # Nested menu using a command
+    'Command Entry' = '(Get-AppxPackage).Name'
+    'Invoke Entry' = '@(Get-AppxPackage).Name'
+    'Hashtable Entry' = @{
+        'Array Entry' = "@('Menu Option 1', 'Menu Option 2', 'Menu Option 3', 'Menu Option 4')"
     }
 }
-Write-Host $menuReturn
+
+Write-Output $menuReturn

@@ -1,21 +1,28 @@
 # Example: AdvancedMenu
 
-This example generates an advanced/nested menu using multiple hashtables and arrays.
+This example includes all possible entry types:
+
+```
+Command Entry     Invoke without opening as nested menu (does not contain any prefixes)
+Invoke Entry      Invoke and open as nested menu (contains the "@" prefix)
+Hashtable Entry   Opened as a nested menu
+Array Entry       Opened as a nested menu
+```
 
 ## Input
 
 ```powershell
-# Include
 . ..\Write-Menu.ps1
 
 $menuReturn = Write-Menu -Title 'Advanced Menu' -Sort -Entries @{
-    'AppxPackages' = '(Get-AppxPackage).Name' # Nested menu using a command
-    'Nested Hashtable' = @{ # Manually defined nested menu
-        'Custom Entry' = 'Write-Output "Custom Command"' # Command entry
-        'Variables' = '(Get-Variable).Name' # Nested menu using a command
+    'Command Entry' = '(Get-AppxPackage).Name'
+    'Invoke Entry' = '@(Get-AppxPackage).Name'
+    'Hashtable Entry' = @{
+        'Array Entry' = "@('Menu Option 1', 'Menu Option 2', 'Menu Option 3', 'Menu Option 4')"
     }
 }
-Write-Host $menuReturn
+
+Write-Output $menuReturn
 ```
 
 ## Console Output
@@ -23,63 +30,72 @@ Write-Host $menuReturn
 ### Main Menu
 
 ```
- Advanced Menu
 
-  AppxPackages
-  Nested Hashtable
+  Advanced Menu
 
- Page 1 / 1
-```
-
-### AppxPackages
+   Command Entry
+   Hashtable Entry                >
+   Invoke Entry                   >
 
 ```
- AppxPackages
 
-  Microsoft.NET.Native.Framework.1.1
-  Microsoft.NET.Native.Framework.1.1
-  Microsoft.NET.Native.Runtime.1.1
-  Microsoft.Appconnector
-  Microsoft.NET.Native.Runtime.1.1
-  Microsoft.WindowsStore
-  windows.immersivecontrolpanel
-  Microsoft.Windows.ShellExperienceHost
-  Microsoft.Windows.Cortana
-  Microsoft.AAD.BrokerPlugin
-
- Page 1 / 3
-```
-
-### Nested Hashtable
+### Command
 
 ```
- Nested Hashtable
-
-  Variables
-  Custom Entry
-
- Page 1 / 1
+...
+Microsoft.MicrosoftSolitaireCollection
+Microsoft.Advertising.Xaml
+Microsoft.BingFinance
+Microsoft.BingNews
+Microsoft.BingWeather
+Microsoft.WindowsMaps
+Microsoft.ZuneVideo
+Microsoft.WindowsCalculator
+Microsoft.XboxApp
+...
 ```
 
-###  Variables
+###  Hashtable and Array
 
 ```
- Variables
 
-  $
-  ?
-  ^
-  _
-  args
-  colorBackground
-  colorBackgroundSelected
-  colorForeground
-  colorForegroundSelected
-  ConfirmPreference
-  ConsoleFileName
-  DebugPreference
+  Hashtable Entry
 
- Page 1 / 4
+   Array Entry                    >
+
+```
+
+```
+
+  Array Entry
+
+   Menu Option 1
+   Menu Option 2
+   Menu Option 3
+   Menu Option 4
+
+```
+
+### Invoke
+
+```
+
+  Invoke Entry                                 2/6
+
+   Microsoft.CommsPhone
+   Microsoft.ConnectivityStore
+   Microsoft.Getstarted
+   Microsoft.LockApp
+   Microsoft.Messaging
+   Microsoft.MicrosoftEdge
+   Microsoft.MicrosoftOfficeHub
+   Microsoft.MicrosoftSolitaireCollection
+   Microsoft.NET.Native.Framework.1.0
+   Microsoft.NET.Native.Framework.1.0
+   Microsoft.NET.Native.Framework.1.1
+   Microsoft.NET.Native.Framework.1.1
+   Microsoft.NET.Native.Framework.1.3
+
 ```
 
 ## Function Output
