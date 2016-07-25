@@ -8,7 +8,7 @@
 
 ![AppxPackages](Examples/MultiSelect.gif)
 
-_NOTE: The last screengrab is missing some frames due to editing, which is why it seems to return more packages than selected/checked..._
+_NOTE: The menu has been updated multiple times since capturing these screen-grabs, so they are no longer accurate..._
 
 ## Description
 
@@ -36,7 +36,7 @@ Outputs a command-line menu which can be navigated using the keyboard.
 
 | Example | Description |
 | :-- | :-- |
-| [AdvancedMenu](Examples/AdvancedMenu.md) | Create a nested menu using multiple hashtables and arrays |
+| [AdvancedMenu](Examples/AdvancedMenu.md) | Demonstrates all supported entry types (regular command + methods of adding a nested menu). |
 | [AppxPackages](Examples/AppxPackages.md) | Uses Write-Menu to list app packages (Windows Store/Modern Apps) |
 | [CustomMenu](Examples/CustomMenu.md) | Generates a custom menu by manually specifying each entry |
 
