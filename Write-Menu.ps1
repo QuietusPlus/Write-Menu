@@ -103,7 +103,8 @@ function Write-Menu {
 
     param(
         # Array or hashtable containing the menu entries
-        [Parameter(ValueFromPipeline = $true)]
+        [Parameter(Mandatory=$true, ValueFromPipeline = $true)]
+        [ValidateNotNullOrEmpty()]
         [Alias('InputObject')]
         $Entries,
 
@@ -199,6 +200,17 @@ function Write-Menu {
         # Convert entries to object
         $script:menuEntries = @()
         switch ($inputEntries.GetType().Name) {
+            'String' {
+                # Set total entries
+                $script:menuEntryTotal = 1
+                # Create object
+                $script:menuEntries = New-Object PSObject -Property @{
+                    Command = ''
+                    Name = $inputEntries
+                    Selected = $false
+                    onConfirm = 'Name'
+                }; break
+            }
             'Object[]' {
                 # Get total entries
                 $script:menuEntryTotal = $inputEntries.Length
@@ -246,9 +258,8 @@ function Write-Menu {
                 }; break
             }
             Default {
-                Write-Error 'Passed -Entries type not supported, please use an array or hashtable.'
-                break
-                return
+                Write-Error "Type `"$($inputEntries.GetType().Name)`" not supported, please use an array or hashtable."
+                exit
             }
         }
 
