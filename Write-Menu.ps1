@@ -24,7 +24,6 @@
 
 function Write-Menu {
     <#
-
         .SYNOPSIS
             Outputs a command-line menu which can be navigated using the keyboard.
 
@@ -102,7 +101,7 @@ function Write-Menu {
         Parameters
     #>
 
-    param (
+    param(
         # Array or hashtable containing the menu entries
         [Parameter(ValueFromPipeline = $true)]
         [Alias('InputObject')]
@@ -111,15 +110,18 @@ function Write-Menu {
         # Title shown at the top of the menu.
         [Parameter(ValueFromPipelineByPropertyName = $true)]
         [Alias('Name')]
+        [string]
         $Title,
 
         # Sort entries before they are displayed.
         [Parameter()]
-        [switch]$Sort,
+        [switch]
+        $Sort,
 
         # Select multiple menu entries using space, each selected entry will then get invoked (this will disable nested menu's).
         [Parameter()]
-        [switch]$MultiSelect
+        [switch]
+        $MultiSelect
     )
 
     <#
@@ -512,6 +514,26 @@ function Write-Menu {
                         $false { $entrySelected.Selected = $true }
                     }
                     Update-Entry ($lineSelected)
+                }; break
+            }
+
+            # Select all if -MultiSelect has been enabled
+            'Insert' {
+                if ($MultiSelect) {
+                    $menuEntries | ForEach-Object {
+                        $_.Selected = $true
+                    }
+                    Get-Page
+                }; break
+            }
+
+            # Select none if -MultiSelect has been enabled
+            'Delete' {
+                if ($MultiSelect) {
+                    $menuEntries | ForEach-Object {
+                        $_.Selected = $false
+                    }
+                    Get-Page
                 }; break
             }
 
