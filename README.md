@@ -50,7 +50,9 @@ Outputs a command-line menu which can be navigated using the keyboard.
 | <kbd>Right</kbd> / <kbd>PageDown</kbd> | Next page |
 | <kbd>Home</kbd> | Jump to top |
 | <kbd>End</kbd> | Jump to bottom |
-| <kbd>Space</kbd> | Check selection (-MultiSelect only) |
+| <kbd>Space</kbd> | `-MultiSelect` Select current |
+| <kbd>Insert</kbd> | `-MultiSelect` Select all |
+| <kbd>Delete</kbd> | `-MultiSelect` Select none |
 | <kbd>Enter</kbd> | Confirm selection |
 | <kbd>Esc</kbd> / <kbd>Backspace</kbd> | Exit / Previous menu |
 
