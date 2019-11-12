@@ -8,7 +8,7 @@ This example uses Write-Menu to list the app packages (Windows Store/Modern Apps
 
 ```powershell
 # Include
-. ..\Write-Menu.ps1
+Import-Module ..\Write-Menu.psm1
 
 $menuReturn = Write-Menu -Title 'AppxPackages' -Entries (Get-AppxPackage).Name
 Write-Host $menuReturn

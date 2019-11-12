@@ -610,3 +610,5 @@ function Write-Menu {
         }
     } while ($inputLoop)
 }
+
+Export-ModuleMember -Function Write-Menu
