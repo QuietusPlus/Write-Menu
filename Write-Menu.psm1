@@ -122,7 +122,12 @@ function Write-Menu {
         # Select multiple menu entries using space, each selected entry will then get invoked (this will disable nested menu's).
         [Parameter()]
         [switch]
-        $MultiSelect
+        $MultiSelect,
+
+        # Return entry index in $Entries, instead of entry names. Compatible with -MultiSelect.
+        [Parameter()]
+        [switch]
+        $ReturnIndex
     )
 
     <#
@@ -437,7 +442,8 @@ function Write-Menu {
         $menuInput = [System.Console]::ReadKey($false)
 
         # Define selected entry
-        $entrySelected = $menuEntries[($pageEntryFirst + $lineSelected)]
+        $entryIndex = ($pageEntryFirst + $lineSelected)
+        $entrySelected = $menuEntries[$entryIndex]
 
         # Check if key has function attached to it
         switch ($menuInput.Key) {
@@ -554,14 +560,19 @@ function Write-Menu {
                 if ($MultiSelect) {
                     Clear-Host
                     # Process checked/selected entries
-                    $menuEntries | ForEach-Object {
+                    $menuEntries | ForEach-Object {$i = 0}{
                         # Entry contains command, invoke it
                         if (($_.Selected) -and ($_.Command -notlike $null) -and ($entrySelected.Command.GetType().Name -ne 'Hashtable')) {
                             Invoke-Expression -Command $_.Command
                         # Return name, entry does not contain command
                         } elseif ($_.Selected) {
-                            return $_.Name
+                            if ($ReturnIndex) {
+                                return $i
+                            } else {
+                                return $_.Name
+                            }
                         }
+                        $i++
                     }
                     # Exit and re-enable cursor
                     $inputLoop = $false
@@ -601,7 +612,11 @@ function Write-Menu {
                     # Return name and exit
                     'Name' {
                         Clear-Host
-                        return $entrySelected.Name
+                        if ($ReturnIndex) {
+                            return $entryIndex
+                        } else {
+                            return $entrySelected.Name
+                        }
                         $inputLoop = $false
                         [System.Console]::CursorVisible = $true
                     }
@@ -610,3 +625,5 @@ function Write-Menu {
         }
     } while ($inputLoop)
 }
+
+Export-ModuleMember -Function Write-Menu

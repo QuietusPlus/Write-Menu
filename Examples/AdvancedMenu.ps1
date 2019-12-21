@@ -2,7 +2,7 @@
     Example: AdvancedMenu
 #>
 
-. ..\Write-Menu.ps1
+Import-Module ..\Write-Menu.psm1
 
 $menuReturn = Write-Menu -Title 'Advanced Menu' -Sort -Entries @{
     'Command Entry' = '(Get-AppxPackage).Name'
