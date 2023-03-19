@@ -432,9 +432,20 @@ function Write-Menu {
         # Move cursor to first entry and beginning of line
         [System.Console]::CursorTop = $lineTop
         [System.Console]::Write("`r")
+        
+        # Redirect standard input to null stream
+        $nullStream = [System.IO.Stream]::Null
+        $nullReader = [System.IO.StreamReader]::new($nullStream)
+        [System.Console]::SetIn($nullReader)
 
-        # Get pressed key
-        $menuInput = [System.Console]::ReadKey($false)
+        # Hide input while detecting keypresses
+        try {
+            # Get pressed key
+            $menuInput = [System.Console]::ReadKey($true)
+        } finally {
+            # Restore standard input
+            [System.Console]::SetIn([System.IO.StreamReader]::new([System.IO.MemoryStream]::new()))
+        }
 
         # Define selected entry
         $entrySelected = $menuEntries[($pageEntryFirst + $lineSelected)]
