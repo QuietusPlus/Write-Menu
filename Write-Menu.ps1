@@ -165,11 +165,21 @@ function Write-Menu {
         Set-Color
     #>
 
-    function Set-Color ([switch]$Inverted) {
+ function Set-Color ([switch]$Inverted) {
         switch ($Inverted) {
             $true {
-                [System.Console]::ForegroundColor = $colorBackground
-                [System.Console]::BackgroundColor = $colorForeground
+                # If foregroundColor is not set it to black
+                [System.Console]::ForegroundColor = if([System.Console]::ForegroundColor -eq -1){
+                    'Black'
+                }else{
+                    $colorBackground
+                }
+                # If backgroundColor is not set it to yellow
+                [System.Console]::BackgroundColor = if([System.Console]::BackgroundColor -eq -1){
+                    'Yellow'
+                }else{
+                    $colorForeground
+                }
             }
             Default {
                 [System.Console]::ForegroundColor = $colorForeground
